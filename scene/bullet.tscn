@@ -2,6 +2,9 @@
 
 [ext_resource type="Script" path="res://script/bullet.gd" id="1_bullet"]
 
+[sub_resource type="Gradient" id="Gradient_trail"]
+colors = PackedColorArray(1, 1, 1, 0.8, 1, 1, 1, 0)
+
 [sub_resource type="CircleShape2D" id="CircleShape2D_wall"]
 radius = 4.0
 
@@ -22,7 +25,7 @@ shape = SubResource("CircleShape2D_wall")
 [node name="Sprite" type="Sprite2D" parent="Visual"]
 
 [node name="Placeholder" type="Polygon2D" parent="Visual"]
-polygon = PackedVector2Array(-9, -3, 6, -3, 10, 0, 6, 3, -9, 3)
+polygon = PackedVector2Array(5.00, 0.00, 4.33, 2.50, 2.50, 4.33, 0.00, 5.00, -2.50, 4.33, -4.33, 2.50, -5.00, 0.00, -4.33, -2.50, -2.50, -4.33, -0.00, -5.00, 2.50, -4.33, 4.33, -2.50)
 
 [node name="Hitbox" type="Area2D" parent="."]
 collision_layer = 0
@@ -31,3 +34,24 @@ monitorable = false
 
 [node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
 shape = SubResource("CircleShape2D_hit")
+
+[node name="Trail" type="Line2D" parent="."]
+top_level = true
+width = 4.0
+gradient = SubResource("Gradient_trail")
+joint_mode = 2
+begin_cap_mode = 2
+
+[node name="Spark" type="CPUParticles2D" parent="."]
+top_level = true
+emitting = false
+amount = 10
+lifetime = 0.25
+one_shot = true
+explosiveness = 1.0
+spread = 180.0
+gravity = Vector2(0, 0)
+initial_velocity_min = 80.0
+initial_velocity_max = 180.0
+scale_amount_min = 2.0
+scale_amount_max = 3.0

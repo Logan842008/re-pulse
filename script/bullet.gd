@@ -15,10 +15,11 @@ extends CharacterBody2D
 ##
 ## Art: put the bullet image on the Visual/Sprite node, pointing right. A white
 ## or light grey image works best, since it gets tinted with the shooter's
-## colour. Brightness above 1 is picked up by the WorldEnvironment in game.tscn
+## colour. Brightness above 1 is picked up by the WorldEnvironment in main.tscn
 ## and blooms into a glow.
 
 const FLASH_TIME := 0.15
+const TRAIL_POINTS := 10
 
 @export var speed := 600.0
 @export var max_ricochets := 3
@@ -41,6 +42,8 @@ var _flash := 0.0
 
 @onready var hitbox: Area2D = $Hitbox
 @onready var visual: Node2D = $Visual
+@onready var trail: Line2D = $Trail
+@onready var spark: CPUParticles2D = $Spark
 
 
 func _ready() -> void:
@@ -56,6 +59,10 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_flash = maxf(_flash - delta / FLASH_TIME, 0.0)
 	_update_glow()
+	# Fading trail behind the bullet (the Trail node ignores the bullet's transform).
+	trail.add_point(global_position, 0)
+	while trail.get_point_count() > TRAIL_POINTS:
+		trail.remove_point(trail.get_point_count() - 1)
 
 
 func _physics_process(delta: float) -> void:
@@ -81,6 +88,7 @@ func _physics_process(delta: float) -> void:
 		velocity = velocity.bounce(normal)
 		motion = collision.get_remainder().bounce(normal)
 		_flash = 1.0
+		_spark_at(collision.get_position())
 	rotation = velocity.angle()
 
 	if multiplayer.is_server() and ricochets > 0:
@@ -93,6 +101,13 @@ func _update_glow() -> void:
 	var tint := color * brightness
 	tint.a = 1.0 if armed else unarmed_alpha
 	visual.modulate = tint
+	trail.modulate = tint
+
+
+func _spark_at(point: Vector2) -> void:
+	spark.global_position = point
+	spark.color = Color(color.r * 3.0, color.g * 3.0, color.b * 3.0, 1.0)
+	spark.restart()
 
 
 func _check_hits() -> void:
