@@ -1,0 +1,48 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://script/player.gd" id="1_player"]
+
+[sub_resource type="RectangleShape2D" id="RectangleShape2D_body"]
+size = Vector2(40, 40)
+
+[sub_resource type="SceneReplicationConfig" id="SceneReplicationConfig_sync"]
+properties/0/path = NodePath(".:position")
+properties/0/spawn = false
+properties/0/replication_mode = 1
+properties/1/path = NodePath("Pivot:rotation")
+properties/1/spawn = false
+properties/1/replication_mode = 1
+
+[node name="Player" type="CharacterBody2D"]
+collision_layer = 2
+collision_mask = 1
+motion_mode = 1
+script = ExtResource("1_player")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("RectangleShape2D_body")
+
+[node name="Body" type="Polygon2D" parent="."]
+polygon = PackedVector2Array(-20, -20, 20, -20, 20, 20, -20, 20)
+
+[node name="Pivot" type="Node2D" parent="."]
+
+[node name="Gun" type="Polygon2D" parent="Pivot"]
+polygon = PackedVector2Array(0, -5, 34, -5, 34, 5, 0, 5)
+
+[node name="NameTag" type="Node2D" parent="."]
+
+[node name="Label" type="Label" parent="NameTag"]
+offset_left = -80.0
+offset_top = -48.0
+offset_right = 80.0
+offset_bottom = -26.0
+theme_override_colors/font_color = Color(0.92, 0.92, 0.92, 1)
+theme_override_colors/font_outline_color = Color(0, 0, 0, 1)
+theme_override_constants/outline_size = 4
+theme_override_font_sizes/font_size = 14
+horizontal_alignment = 1
+vertical_alignment = 1
+
+[node name="Synchronizer" type="MultiplayerSynchronizer" parent="."]
+replication_config = SubResource("SceneReplicationConfig_sync")

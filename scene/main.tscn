@@ -1,3 +1,143 @@
 [gd_scene format=3 uid="uid://cimyeceio57e5"]
 
-[node name="main" type="Node2D" unique_id=887194613]
+[ext_resource type="Script" path="res://script/main.gd" id="1_main"]
+
+[node name="Main" type="Node"]
+script = ExtResource("1_main")
+
+[node name="Level" type="Node" parent="."]
+
+[node name="LevelSpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Level")
+spawn_limit = 1
+
+[node name="Lobby" type="CanvasLayer" parent="."]
+
+[node name="Center" type="CenterContainer" parent="Lobby"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Box" type="VBoxContainer" parent="Lobby/Center"]
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="Title" type="Label" parent="Lobby/Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 48
+text = "RE:PULSE"
+horizontal_alignment = 1
+
+[node name="Subtitle" type="Label" parent="Lobby/Center/Box"]
+layout_mode = 2
+text = "Bullets only hurt after they ricochet."
+horizontal_alignment = 1
+
+[node name="NameRow" type="HBoxContainer" parent="Lobby/Center/Box"]
+layout_mode = 2
+
+[node name="NameLabel" type="Label" parent="Lobby/Center/Box/NameRow"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "Name"
+
+[node name="NameEdit" type="LineEdit" parent="Lobby/Center/Box/NameRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "Your name"
+
+[node name="ColorRow" type="HBoxContainer" parent="Lobby/Center/Box"]
+layout_mode = 2
+
+[node name="ColorLabel" type="Label" parent="Lobby/Center/Box/ColorRow"]
+custom_minimum_size = Vector2(70, 0)
+layout_mode = 2
+text = "Colour"
+
+[node name="Swatches" type="HBoxContainer" parent="Lobby/Center/Box/ColorRow"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 8
+
+[node name="HSeparator" type="HSeparator" parent="Lobby/Center/Box"]
+layout_mode = 2
+
+[node name="RoundsRow" type="HBoxContainer" parent="Lobby/Center/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="RoundsLabel" type="Label" parent="Lobby/Center/Box/RoundsRow"]
+layout_mode = 2
+text = "Match length (host picks):"
+
+[node name="Rounds" type="OptionButton" parent="Lobby/Center/Box/RoundsRow"]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
+[node name="ConnectBox" type="VBoxContainer" parent="Lobby/Center/Box"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="HostButton" type="Button" parent="Lobby/Center/Box/ConnectBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Host Game"
+
+[node name="HSeparator" type="HSeparator" parent="Lobby/Center/Box/ConnectBox"]
+layout_mode = 2
+
+[node name="Address" type="LineEdit" parent="Lobby/Center/Box/ConnectBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "127.0.0.1"
+placeholder_text = "Host's IP address"
+
+[node name="JoinButton" type="Button" parent="Lobby/Center/Box/ConnectBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Join Game"
+
+[node name="RoomBox" type="VBoxContainer" parent="Lobby/Center/Box"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+theme_override_constants/separation = 10
+
+[node name="PlayersLabel" type="Label" parent="Lobby/Center/Box/RoomBox"]
+layout_mode = 2
+text = "Players"
+
+[node name="PlayerList" type="VBoxContainer" parent="Lobby/Center/Box/RoomBox"]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="RoomHint" type="Label" parent="Lobby/Center/Box/RoomBox"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
+
+[node name="StartButton" type="Button" parent="Lobby/Center/Box/RoomBox"]
+unique_name_in_owner = true
+layout_mode = 2
+text = "Start Match"
+
+[node name="LeaveButton" type="Button" parent="Lobby/Center/Box"]
+unique_name_in_owner = true
+visible = false
+layout_mode = 2
+text = "Leave"
+
+[node name="Status" type="Label" parent="Lobby/Center/Box"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(420, 0)
+layout_mode = 2
+horizontal_alignment = 1
+autowrap_mode = 3
