@@ -1,12 +1,11 @@
-
 class_name Hud
 extends CanvasLayer
 
 signal leave_pressed
 signal rematch_pressed
 
-var game: Game
-var message_timer := 0.0
+var _game: Game
+var _message_time_left := 0.0
 
 @onready var you_name: Label = %YouName
 @onready var you_health: ProgressBar = %YouHealth
@@ -24,22 +23,19 @@ func _ready() -> void:
 	rematch_button.pressed.connect(rematch_pressed.emit)
 
 
-func setup(current_game: Game) -> void:
-	game = current_game
-
-	var my_slot = Network.local_slot()
-	var enemy_slot = 1 - my_slot
-
-	you_name.text = Network.get_player_name(my_slot) + " (you)"
-	opponent_name.text = Network.get_player_name(enemy_slot)
-
-	set_health_color(you_health, Network.get_color(my_slot))
-	set_health_color(opponent_health, Network.get_color(enemy_slot))
+func setup(game: Game) -> void:
+	_game = game
+	var me := Network.local_slot()
+	var them := 1 - me
+	you_name.text = "%s (you)" % Network.get_player_name(me)
+	opponent_name.text = Network.get_player_name(them)
+	_tint_bar(you_health, Network.get_color(me))
+	_tint_bar(opponent_health, Network.get_color(them))
 
 
 func show_message(text: String, seconds := 0.0) -> void:
 	message_label.text = text
-	message_timer = seconds
+	_message_time_left = seconds
 
 
 func show_rematch() -> void:
@@ -51,62 +47,29 @@ func hide_rematch() -> void:
 
 
 func _process(delta: float) -> void:
-	if game == null:
+	if _game == null:
 		return
-
-	update_health()
-	update_score()
-	update_boost()
-	update_message(delta)
-
-
-func update_health() -> void:
-	var my_slot = Network.local_slot()
-	var enemy_slot = 1 - my_slot
-
-	you_health.max_value = game.max_health
-	you_health.value = game.health[my_slot]
-
-	opponent_health.max_value = game.max_health
-	opponent_health.value = game.health[enemy_slot]
-
-
-func update_score() -> void:
-	var my_slot = Network.local_slot()
-	var enemy_slot = 1 - my_slot
-
+	var me := Network.local_slot()
+	var them := 1 - me
+	you_health.max_value = _game.max_health
+	you_health.value = _game.health[me]
+	opponent_health.max_value = _game.max_health
+	opponent_health.value = _game.health[them]
 	score_label.text = "Round %d     You %d - %d Opponent     (first to %d)" % [
-		game.round_number,
-		game.scores[my_slot],
-		game.scores[enemy_slot],
-		game.rounds_to_win()
-	]
+		_game.round_number, _game.scores[me], _game.scores[them], _game.rounds_to_win()]
 
+	var boost: float = _game.boost_left[me]
+	boost_label.text = "WEAPON BOOST  %.1fs" % boost if boost > 0.0 else ""
 
-func update_boost() -> void:
-	var my_slot = Network.local_slot()
-	var boost_time = game.boost_left[my_slot]
-
-	if boost_time > 0:
-		boost_label.text = "WEAPON BOOST  %.1fs" % boost_time
-	else:
-		boost_label.text = ""
-
-
-func update_message(delta: float) -> void:
-	if game.countdown_left > 0:
-		message_label.text = "ROUND %d\n%d" % [
-			game.round_number,
-			ceili(game.countdown_left)
-		]
-	elif message_timer > 0:
-		message_timer -= delta
-
-		if message_timer <= 0:
+	if _game.countdown_left > 0.0:
+		message_label.text = "ROUND %d\n%d" % [_game.round_number, ceili(_game.countdown_left)]
+	elif _message_time_left > 0.0:
+		_message_time_left -= delta
+		if _message_time_left <= 0.0:
 			message_label.text = ""
 
 
-func set_health_color(bar: ProgressBar, color: Color) -> void:
-	var fill = StyleBoxFlat.new()
+func _tint_bar(bar: ProgressBar, color: Color) -> void:
+	var fill := StyleBoxFlat.new()
 	fill.bg_color = color
 	bar.add_theme_stylebox_override("fill", fill)

@@ -1,0 +1,10 @@
+[gd_resource type="FontVariation" format=3]
+
+[ext_resource type="FontFile" path="res://ui/fonts/Orbitron-Variable.ttf" id="1_hjsfv"]
+
+[resource]
+base_font = ExtResource("1_hjsfv")
+variation_opentype = {
+2003265652: 700
+}
+spacing_glyph = 2

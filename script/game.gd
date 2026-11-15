@@ -8,8 +8,8 @@ const BULLET_SCENE := preload("res://scene/bullet.tscn")
 const POWERUP_SCENE := preload("res://scene/powerup.tscn")
 
 @export var max_health := 100
-@export var bullet_damage := 20 
-@export var spawn_protection_time := 1.5 ## after starting players immune to bullets :D for how many s
+@export var bullet_damage := 20
+@export var spawn_protection_time := 1.5
 
 @export_group("Powerups")
 @export var health_pickup_amount := 40
@@ -23,8 +23,6 @@ const POWERUP_SCENE := preload("res://scene/powerup.tscn")
 @export var round_start_delay := 3.0
 @export var round_end_delay := 2.5
 
-# 0 = host/bottom
-# 1 = client/top
 var health := [100, 100]
 var boost_left := [0.0, 0.0]
 var protection_left := [0.0, 0.0]
@@ -106,8 +104,6 @@ func request_shoot(origin: Vector2, direction: Vector2) -> void:
 		_server_shoot.rpc_id(1, origin, direction)
 
 
-## spawn
-
 func _spawn_player(peer_id: int) -> Node:
 	var player: Player = PLAYER_SCENE.instantiate()
 	player.name = str(peer_id)
@@ -137,7 +133,6 @@ func _spawn_powerup(data: Dictionary) -> Node:
 	powerup.kind = data["kind"]
 	powerup.game = self
 	return powerup
-
 
 
 @rpc("any_peer", "reliable")
@@ -185,17 +180,12 @@ func _on_rematch_pressed() -> void:
 		_start_match()
 
 
-<<<<<<< Updated upstream
-# --- Server: combat and pickups ---
-=======
->>>>>>> Stashed changes
-
 @rpc("any_peer", "reliable")
 func _server_shoot(origin: Vector2, direction: Vector2) -> void:
 	if not multiplayer.is_server() or not round_active or direction.is_zero_approx():
 		return
 	var shooter := multiplayer.get_remote_sender_id()
-	if shooter == 0: 
+	if shooter == 0:
 		shooter = multiplayer.get_unique_id()
 	var count := weapon_boost_bullets if is_boosted(Network.slot_of(shooter)) else 1
 	var spread := deg_to_rad(weapon_boost_spread_degrees)
@@ -217,6 +207,7 @@ func on_bullet_hit_player(bullet: Bullet, player: Player) -> void:
 	_sync_health.rpc(player.slot, new_health)
 	if new_health == 0:
 		_end_round(1 - player.slot)
+
 
 func on_powerup_touched(powerup: Powerup, player: Player) -> void:
 	if not round_active or powerup.is_queued_for_deletion():
@@ -274,7 +265,6 @@ func _after(seconds: float, callback: Callable) -> void:
 
 func _on_phase_timer_timeout() -> void:
 	_phase_callback.call()
-
 
 
 @rpc("authority", "call_local", "reliable")

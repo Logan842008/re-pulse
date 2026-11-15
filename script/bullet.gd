@@ -5,13 +5,13 @@ const FLASH_TIME := 0.15
 
 @export var speed := 600.0
 @export var max_ricochets := 3
-@export var lifetime := 8.0 
+@export var lifetime := 8.0
 
 @export_group("Glow")
-@export var unarmed_glow := 1.0 
+@export var unarmed_glow := 1.0
 @export var unarmed_alpha := 0.5
-@export var armed_glow := 3.0 ## glow after bouncing
-@export var ricochet_flash := 4.0 ## inc brightness
+@export var armed_glow := 3.0
+@export var ricochet_flash := 4.0
 
 var direction := Vector2.RIGHT
 var owner_peer_id := 1
@@ -48,7 +48,7 @@ func _physics_process(delta: float) -> void:
 		_expire()
 		return
 
-	var motion := velocity*delta
+	var motion := velocity * delta
 	for i in 4:
 		var collision := move_and_collide(motion)
 		if collision == null:
@@ -57,11 +57,6 @@ func _physics_process(delta: float) -> void:
 		if ricochets >= max_ricochets:
 			_expire()
 			return
-<<<<<<< Updated upstream
-		# Reflect the velocity across the surface normal: angle in = angle out.
-=======
-
->>>>>>> Stashed changes
 		var normal := collision.get_normal()
 		velocity = velocity.bounce(normal)
 		motion = collision.get_remainder().bounce(normal)
@@ -90,6 +85,5 @@ func _check_hits() -> void:
 func _expire() -> void:
 	_spent = true
 	hide()
-
 	if multiplayer.is_server():
 		queue_free()
