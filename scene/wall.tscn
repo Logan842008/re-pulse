@@ -1,0 +1,11 @@
+[gd_scene format=3]
+
+[ext_resource type="Script" path="res://script/wall.gd" id="1_wall"]
+
+[node name="Wall" type="StaticBody2D"]
+collision_mask = 0
+script = ExtResource("1_wall")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+
+[node name="Visual" type="Polygon2D" parent="."]
