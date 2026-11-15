@@ -98,46 +98,60 @@ layout_mode = 2
 text = "127.0.0.1"
 placeholder_text = "Host's IP address"
 
-[node name="JoinButton" type="Button" parent="Lobby/Center/Box/ConnectBox" unique_id=1971289416]
+[node name="JoinButton" type="Button" parent="Lobby/Center/Box/ConnectBox" unique_id=668137926]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Join Game"
 
-[node name="RoomBox" type="VBoxContainer" parent="Lobby/Center/Box" unique_id=1394096313]
+[node name="RoomBox" type="VBoxContainer" parent="Lobby/Center/Box" unique_id=748858155]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="PlayersLabel" type="Label" parent="Lobby/Center/Box/RoomBox" unique_id=660580126]
+[node name="PlayersLabel" type="Label" parent="Lobby/Center/Box/RoomBox" unique_id=167929942]
 layout_mode = 2
 text = "Players"
 
-[node name="PlayerList" type="VBoxContainer" parent="Lobby/Center/Box/RoomBox" unique_id=1949652378]
+[node name="PlayerList" type="VBoxContainer" parent="Lobby/Center/Box/RoomBox" unique_id=1150352472]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="RoomHint" type="Label" parent="Lobby/Center/Box/RoomBox" unique_id=1087477918]
+[node name="RoomHint" type="Label" parent="Lobby/Center/Box/RoomBox" unique_id=218311932]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 horizontal_alignment = 1
 autowrap_mode = 3
 
-[node name="StartButton" type="Button" parent="Lobby/Center/Box/RoomBox" unique_id=1612753409]
+[node name="StartButton" type="Button" parent="Lobby/Center/Box/RoomBox" unique_id=2025001979]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Start Match"
 
-[node name="LeaveButton" type="Button" parent="Lobby/Center/Box" unique_id=1637519542]
+[node name="LeaveButton" type="Button" parent="Lobby/Center/Box" unique_id=1021019858]
 unique_name_in_owner = true
 visible = false
 layout_mode = 2
 text = "Leave"
 
-[node name="Status" type="Label" parent="Lobby/Center/Box" unique_id=1091570944]
+[node name="Status" type="Label" parent="Lobby/Center/Box" unique_id=587082456]
 unique_name_in_owner = true
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 horizontal_alignment = 1
 autowrap_mode = 3
+
+[node name="ColorRect" type="ColorRect" parent="Lobby" unique_id=870642490]
+offset_right = 1148.0
+offset_bottom = 645.0
+color = Color(0.02745098, 0.02745098, 0.05882353, 1)
+
+[node name="TextureRect" type="TextureRect" parent="Lobby" unique_id=1229761381]
+self_modulate = Color(0.078431375, 0.078431375, 0.22745098, 1)
+offset_left = 5.0
+offset_top = 4.0
+offset_right = 1151.0
+offset_bottom = 645.0
+texture = ExtResource("2_wp4xf")
+stretch_mode = 1
