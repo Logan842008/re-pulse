@@ -1,341 +1,324 @@
 class_name Game
 extends Node2D
-## One match between the two connected players.
-##
-## The server is the referee: it spawns players, bullets and powerups, applies
-## damage and keeps score, then tells both peers what happened through RPCs.
-## Each peer only moves and aims its own player (see player.gd).
+# server runs the match (spawns, damage, score) and tells the client over rpc.
+# each peer only moves its own player
 
 signal exit_requested
 
 const PLAYER_SCENE := preload("res://scene/player.tscn")
 const BULLET_SCENE := preload("res://scene/bullet.tscn")
-const POWERUP_SCENE := preload("res://scene/powerup.tscn")
+const PICKUP_SCENE := preload("res://scene/powerup.tscn")
 
-@export var max_health := 100
-@export var bullet_damage := 20
-## Seconds after "FIGHT!" during which bullets pass through players.
-@export var spawn_protection_time := 1.5
+@export var max_hp := 100
+@export var bullet_dmg := 20
+@export var spawn_prot_time := 1.5 # bullets pass through you for this long after FIGHT!
 
 @export_group("Powerups")
-@export var health_pickup_amount := 40
-@export var weapon_boost_duration := 5.0
-@export var weapon_boost_bullets := 3
-@export var weapon_boost_spread_degrees := 12.0
-@export var powerup_spawn_interval := 8.0
-@export var max_powerups := 2
+@export var heal_amount := 40
+@export var boost_time := 5.0
+@export var boost_bullets := 3
+@export var boost_spread_deg := 12.0
+@export var pickup_interval := 8.0
+@export var max_pickups := 2
 
 @export_group("Rounds")
-@export var round_start_delay := 3.0
-@export var round_end_delay := 2.5
+@export var start_delay := 3.0
+@export var end_delay := 2.5
 
-# Match state, indexed by player slot (0 = host/bottom, 1 = client/top).
-# The server changes these and mirrors them to the client with RPCs.
-var health := [100, 100]
-var boost_left := [0.0, 0.0]
-var protection_left := [0.0, 0.0]
+# indexed by slot (0 = host/bottom, 1 = client/top), server mirrors to client
+var hp := [100, 100]
+var boost_t := [0.0, 0.0]
+var prot_t := [0.0, 0.0]
 var scores := [0, 0]
-var round_number := 0
-var round_active := false
+var round_num := 0
+var fighting := false
 var match_over := false
-var countdown_left := 0.0
+var countdown := 0.0
 
 var _started := false
-var _spawn_counter := 0
-var _phase_timer: Timer
-var _phase_callback: Callable
-var _powerup_timer: Timer
+var _spawn_n := 0
+var _phase: Timer
+var _phase_cb: Callable
+var _pickup_timer: Timer
 
 @onready var map: Map = $Map
 @onready var players: Node2D = $Players
 @onready var bullets: Node2D = $Bullets
-@onready var powerups: Node2D = $Powerups
-@onready var player_spawner: MultiplayerSpawner = $PlayerSpawner
-@onready var bullet_spawner: MultiplayerSpawner = $BulletSpawner
-@onready var powerup_spawner: MultiplayerSpawner = $PowerupSpawner
-@onready var camera: Camera2D = $Camera2D
+@onready var pickups: Node2D = $Powerups
+@onready var p_spawner: MultiplayerSpawner = $PlayerSpawner
+@onready var b_spawner: MultiplayerSpawner = $BulletSpawner
+@onready var pu_spawner: MultiplayerSpawner = $PowerupSpawner
+@onready var cam: Camera2D = $Camera2D
 @onready var hud: Hud = $HUD
 
 
 func _ready() -> void:
-	player_spawner.spawn_function = _spawn_player
-	bullet_spawner.spawn_function = _spawn_bullet
-	powerup_spawner.spawn_function = _spawn_powerup
+	p_spawner.spawn_function = _spawn_player
+	b_spawner.spawn_function = _spawn_bullet
+	pu_spawner.spawn_function = _spawn_pickup
 
-	# Everyone sees themselves at the bottom of the screen: the top player's
-	# camera is turned 180 degrees. player.gd rotates WASD input to match.
-	camera.position = map.get_center()
-	if Network.local_slot() == 1:
-		camera.ignore_rotation = false
-		camera.rotation = PI
+	# everyone sees themselves at the bottom, so the top player's camera is
+	# flipped 180 (player.gd rotates the input to match)
+	cam.position = map.get_center()
+	if Network.my_slot() == 1:
+		cam.ignore_rotation = false
+		cam.rotation = PI
 
 	hud.setup(self)
 	hud.leave_pressed.connect(exit_requested.emit)
-	hud.rematch_pressed.connect(_on_rematch_pressed)
+	hud.rematch_pressed.connect(_on_rematch)
 
 	if multiplayer.is_server():
-		_phase_timer = _make_timer(true, _on_phase_timer_timeout)
-		_powerup_timer = _make_timer(false, _on_powerup_timer_timeout)
+		_phase = _make_timer(true, func(): _phase_cb.call())
+		_pickup_timer = _make_timer(false, _on_pickup_timer)
 	else:
-		# Tell the host this peer has loaded the arena and can receive RPCs.
+		# tell the host we're loaded, otherwise its spawns/rpcs can show up
+		# before our arena exists
 		_client_ready.rpc_id(1)
 
 
 func _process(delta: float) -> void:
-	for slot in 2:
-		boost_left[slot] = maxf(boost_left[slot] - delta, 0.0)
-		protection_left[slot] = maxf(protection_left[slot] - delta, 0.0)
-	countdown_left = maxf(countdown_left - delta, 0.0)
+	for s in 2:
+		boost_t[s] = maxf(boost_t[s] - delta, 0.0)
+		prot_t[s] = maxf(prot_t[s] - delta, 0.0)
+	countdown = maxf(countdown - delta, 0.0)
 
 
-func get_player(peer_id: int) -> Player:
-	return players.get_node_or_null(str(peer_id)) as Player
+func get_player(pid: int) -> Player:
+	return players.get_node_or_null(str(pid)) as Player
 
 
 func is_boosted(slot: int) -> bool:
-	return boost_left[slot] > 0.0
+	return boost_t[slot] > 0.0
 
 
 func is_protected(slot: int) -> bool:
-	return protection_left[slot] > 0.0
+	return prot_t[slot] > 0.0
 
 
-func rounds_to_win() -> int:
+func wins_needed() -> int:
 	return ceili(Network.best_of / 2.0)
 
 
-## Rotation of this peer's view, so input can be turned to match the screen.
-func view_rotation() -> float:
-	return camera.global_rotation
+func view_rot() -> float:
+	return cam.global_rotation
 
 
-## Called by the local player when it fires. The server decides what spawns.
-func request_shoot(origin: Vector2, direction: Vector2) -> void:
+func request_shoot(origin: Vector2, dir: Vector2) -> void:
 	if multiplayer.is_server():
-		_server_shoot(origin, direction)
+		_server_shoot(origin, dir)
 	else:
-		_server_shoot.rpc_id(1, origin, direction)
+		_server_shoot.rpc_id(1, origin, dir)
 
 
-# --- Spawning (runs on both peers; the spawners replicate server spawns) ---
+# spawn functions run on both peers, the spawners replicate the server's calls
 
-func _spawn_player(peer_id: int) -> Node:
-	var player: Player = PLAYER_SCENE.instantiate()
-	player.name = str(peer_id)
-	player.peer_id = peer_id
-	player.slot = Network.slot_of(peer_id)
-	player.game = self
-	player.position = map.get_spawn_position(player.slot)
-	player.set_multiplayer_authority(peer_id)
-	return player
-
-
-func _spawn_bullet(data: Dictionary) -> Node:
-	var bullet: Bullet = BULLET_SCENE.instantiate()
-	bullet.name = data["name"]
-	bullet.position = data["position"]
-	bullet.direction = data["direction"]
-	bullet.owner_peer_id = data["owner"]
-	bullet.color = Network.get_color(Network.slot_of(data["owner"]))
-	bullet.game = self
-	return bullet
+func _spawn_player(pid: int) -> Node:
+	var p: Player = PLAYER_SCENE.instantiate()
+	p.name = str(pid)
+	p.peer_id = pid
+	p.slot = Network.slot_of(pid)
+	p.game = self
+	p.position = map.spawn_pos(p.slot)
+	p.set_multiplayer_authority(pid)
+	return p
 
 
-func _spawn_powerup(data: Dictionary) -> Node:
-	var powerup: Powerup = POWERUP_SCENE.instantiate()
-	powerup.name = data["name"]
-	powerup.position = data["position"]
-	powerup.kind = data["kind"]
-	powerup.game = self
-	return powerup
+func _spawn_bullet(d: Dictionary) -> Node:
+	var b: Bullet = BULLET_SCENE.instantiate()
+	b.name = d["name"]
+	b.position = d["pos"]
+	b.dir = d["dir"]
+	b.owner_id = d["owner"]
+	b.color = Network.color_of(Network.slot_of(d["owner"]))
+	b.game = self
+	return b
 
 
-# --- Server: match flow ---
+func _spawn_pickup(d: Dictionary) -> Node:
+	var pu: Powerup = PICKUP_SCENE.instantiate()
+	pu.name = d["name"]
+	pu.position = d["pos"]
+	pu.kind = d["kind"]
+	pu.game = self
+	return pu
+
 
 @rpc("any_peer", "reliable")
 func _client_ready() -> void:
 	if not multiplayer.is_server() or _started:
 		return
 	_started = true
-	player_spawner.spawn(1)
-	player_spawner.spawn(multiplayer.get_remote_sender_id())
+	p_spawner.spawn(1)
+	p_spawner.spawn(multiplayer.get_remote_sender_id())
 	_start_match()
 
 
 func _start_match() -> void:
 	scores = [0, 0]
-	round_number = 0
+	round_num = 0
 	_start_round()
 
 
 func _start_round() -> void:
-	round_number += 1
+	round_num += 1
 	_clear_arena()
-	_powerup_timer.stop()
-	_round_starting.rpc(round_number, scores, Network.best_of)
-	_after(round_start_delay, _begin_fighting)
+	_pickup_timer.stop()
+	_rpc_round_start.rpc(round_num, scores, Network.best_of)
+	_after(start_delay, _begin_fight)
 
 
-func _begin_fighting() -> void:
-	_round_live.rpc()
-	_powerup_timer.start(powerup_spawn_interval)
+func _begin_fight() -> void:
+	_rpc_fight.rpc()
+	_pickup_timer.start(pickup_interval)
 
 
-func _end_round(winner_slot: int) -> void:
-	round_active = false
-	_powerup_timer.stop()
+func _end_round(winner: int) -> void:
+	fighting = false
+	_pickup_timer.stop()
 	_clear_bullets()
-	scores[winner_slot] += 1
-	var is_match_over: bool = scores[winner_slot] >= rounds_to_win()
-	_round_ended.rpc(winner_slot, scores, is_match_over)
-	if not is_match_over:
-		_after(round_end_delay, _start_round)
+	scores[winner] += 1
+	var over: bool = scores[winner] >= wins_needed()
+	_rpc_round_end.rpc(winner, scores, over)
+	if not over:
+		_after(end_delay, _start_round)
 
 
-func _on_rematch_pressed() -> void:
+func _on_rematch() -> void:
 	if multiplayer.is_server() and match_over:
 		_start_match()
 
 
-# --- Server: combat and pickups ---
-
 @rpc("any_peer", "reliable")
-func _server_shoot(origin: Vector2, direction: Vector2) -> void:
-	if not multiplayer.is_server() or not round_active or direction.is_zero_approx():
+func _server_shoot(origin: Vector2, dir: Vector2) -> void:
+	if not multiplayer.is_server() or not fighting or dir.is_zero_approx():
 		return
 	var shooter := multiplayer.get_remote_sender_id()
-	if shooter == 0: # Called locally by the host's own player.
+	if shooter == 0: # 0 means the host called this directly, not over rpc
 		shooter = multiplayer.get_unique_id()
-	var count := weapon_boost_bullets if is_boosted(Network.slot_of(shooter)) else 1
-	var spread := deg_to_rad(weapon_boost_spread_degrees)
-	for i in count:
-		var offset := (i - (count - 1) / 2.0) * spread
-		bullet_spawner.spawn({
+	var n := boost_bullets if is_boosted(Network.slot_of(shooter)) else 1
+	var spread := deg_to_rad(boost_spread_deg)
+	for i in n:
+		var off := (i - (n - 1) / 2.0) * spread # fan centred on the aim
+		b_spawner.spawn({
 			"name": _next_name("Bullet"),
-			"position": origin,
-			"direction": direction.normalized().rotated(offset),
+			"pos": origin,
+			"dir": dir.normalized().rotated(off),
 			"owner": shooter,
 		})
 
 
-## Called by a bullet on the server when it touches a player it's allowed to hurt.
-func on_bullet_hit_player(bullet: Bullet, player: Player) -> void:
-	if not round_active or bullet.is_queued_for_deletion():
+func on_bullet_hit(b: Bullet, p: Player) -> void:
+	if not fighting or b.is_queued_for_deletion():
 		return
-	bullet.queue_free()
-	var new_health := maxi(health[player.slot] - bullet_damage, 0)
-	_sync_health.rpc(player.slot, new_health)
-	if new_health == 0:
-		_end_round(1 - player.slot)
+	b.queue_free()
+	var new_hp := maxi(hp[p.slot] - bullet_dmg, 0)
+	_sync_hp.rpc(p.slot, new_hp)
+	if new_hp == 0:
+		_end_round(1 - p.slot)
 
 
-## Called by a powerup on the server when a player walks over it. First one there gets it.
-func on_powerup_touched(powerup: Powerup, player: Player) -> void:
-	if not round_active or powerup.is_queued_for_deletion():
+func on_pickup(pu: Powerup, p: Player) -> void:
+	# both players can touch it in the same physics frame, first call wins
+	if not fighting or pu.is_queued_for_deletion():
 		return
-	powerup.queue_free()
-	match powerup.kind:
+	pu.queue_free()
+	match pu.kind:
 		Powerup.Kind.HEALTH:
-			_sync_health.rpc(player.slot, mini(health[player.slot] + health_pickup_amount, max_health))
+			_sync_hp.rpc(p.slot, mini(hp[p.slot] + heal_amount, max_hp))
 		Powerup.Kind.WEAPON:
-			_sync_boost.rpc(player.slot, weapon_boost_duration)
+			_sync_boost.rpc(p.slot, boost_time)
 
 
-func _on_powerup_timer_timeout() -> void:
-	if not round_active or powerups.get_child_count() >= max_powerups:
+func _on_pickup_timer() -> void:
+	if not fighting or pickups.get_child_count() >= max_pickups:
 		return
-	var taken := powerups.get_children().map(func(p: Node2D) -> Vector2: return p.position)
-	var free_spots := map.get_powerup_positions().filter(func(spot: Vector2) -> bool: return not taken.has(spot))
-	if free_spots.is_empty():
+	var used := pickups.get_children().map(func(n: Node2D) -> Vector2: return n.position)
+	var spots := map.pickup_spots().filter(func(s: Vector2) -> bool: return not used.has(s))
+	if spots.is_empty():
 		return
-	powerup_spawner.spawn({
+	pu_spawner.spawn({
 		"name": _next_name("Powerup"),
-		"position": free_spots.pick_random(),
+		"pos": spots.pick_random(),
 		"kind": [Powerup.Kind.HEALTH, Powerup.Kind.WEAPON].pick_random(),
 	})
 
 
 func _clear_arena() -> void:
 	_clear_bullets()
-	for powerup in powerups.get_children():
-		powerup.queue_free()
+	for pu in pickups.get_children():
+		pu.queue_free()
 
 
 func _clear_bullets() -> void:
-	for bullet in bullets.get_children():
-		bullet.queue_free()
+	for b in bullets.get_children():
+		b.queue_free()
 
 
 func _next_name(prefix: String) -> String:
-	_spawn_counter += 1
-	return "%s%d" % [prefix, _spawn_counter]
+	_spawn_n += 1
+	return "%s%d" % [prefix, _spawn_n]
 
 
-func _make_timer(one_shot: bool, callback: Callable) -> Timer:
-	var timer := Timer.new()
-	timer.one_shot = one_shot
-	timer.timeout.connect(callback)
-	add_child(timer)
-	return timer
+func _make_timer(one_shot: bool, cb: Callable) -> Timer:
+	var t := Timer.new()
+	t.one_shot = one_shot
+	t.timeout.connect(cb)
+	add_child(t)
+	return t
 
 
-func _after(seconds: float, callback: Callable) -> void:
-	_phase_callback = callback
-	_phase_timer.start(seconds)
+func _after(secs: float, cb: Callable) -> void:
+	_phase_cb = cb
+	_phase.start(secs)
 
-
-func _on_phase_timer_timeout() -> void:
-	_phase_callback.call()
-
-
-# --- RPCs: server -> both peers ---
 
 @rpc("authority", "call_local", "reliable")
-func _round_starting(number: int, new_scores: Array, best_of: int) -> void:
-	round_number = number
+func _rpc_round_start(num: int, new_scores: Array, best_of: int) -> void:
+	round_num = num
 	scores = new_scores
 	Network.best_of = best_of
-	round_active = false
+	fighting = false
 	match_over = false
-	health = [max_health, max_health]
-	boost_left = [0.0, 0.0]
-	protection_left = [0.0, 0.0]
-	countdown_left = round_start_delay
+	hp = [max_hp, max_hp]
+	boost_t = [0.0, 0.0]
+	prot_t = [0.0, 0.0]
+	countdown = start_delay
 	var me := get_player(multiplayer.get_unique_id())
 	if me:
-		me.respawn(map.get_spawn_position(me.slot))
+		me.respawn(map.spawn_pos(me.slot))
 	hud.hide_rematch()
 
 
 @rpc("authority", "call_local", "reliable")
-func _round_live() -> void:
-	round_active = true
-	protection_left = [spawn_protection_time, spawn_protection_time]
-	hud.show_message("FIGHT!", 0.8)
+func _rpc_fight() -> void:
+	fighting = true
+	prot_t = [spawn_prot_time, spawn_prot_time]
+	hud.show_msg("FIGHT!", 0.8)
 
 
 @rpc("authority", "call_local", "reliable")
-func _round_ended(winner_slot: int, new_scores: Array, is_match_over: bool) -> void:
-	round_active = false
+func _rpc_round_end(winner: int, new_scores: Array, over: bool) -> void:
+	fighting = false
 	scores = new_scores
-	match_over = is_match_over
-	var won := winner_slot == Network.local_slot()
-	if not is_match_over:
-		hud.show_message("ROUND WON" if won else "ROUND LOST", round_end_delay)
+	match_over = over
+	var won := winner == Network.my_slot()
+	if not over:
+		hud.show_msg("ROUND WON" if won else "ROUND LOST", end_delay)
 		return
-	var text := "YOU WIN THE MATCH!" if won else "%s WINS THE MATCH" % Network.get_player_name(winner_slot)
+	var txt := "YOU WIN THE MATCH!" if won else "%s WINS THE MATCH" % Network.name_of(winner)
 	if multiplayer.is_server():
 		hud.show_rematch()
 	else:
-		text += "\nWaiting for the host to start a rematch..."
-	hud.show_message(text)
+		txt += "\nWaiting for the host to start a rematch..."
+	hud.show_msg(txt)
 
 
 @rpc("authority", "call_local", "reliable")
-func _sync_health(slot: int, value: int) -> void:
-	health[slot] = value
+func _sync_hp(slot: int, value: int) -> void:
+	hp[slot] = value
 
 
 @rpc("authority", "call_local", "reliable")
-func _sync_boost(slot: int, seconds: float) -> void:
-	boost_left[slot] = seconds
+func _sync_boost(slot: int, secs: float) -> void:
+	boost_t[slot] = secs

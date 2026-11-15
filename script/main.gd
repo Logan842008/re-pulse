@@ -1,12 +1,10 @@
 extends Node
-## Lobby: pick a name and colour, host or join a LAN game, then wait in the
-## room until the host starts the match. The Game scene is created on the
-## host and replicated to the client by the LevelSpawner.
+# lobby. only the host makes the Game scene, LevelSpawner copies it to the client
 
 enum State { OFFLINE, CONNECTING, ROOM }
 
 const GAME_SCENE := preload("res://scene/game.tscn")
-const ROUND_OPTIONS: Array[int] = [1, 3, 5]
+const ROUND_OPTS: Array[int] = [1, 3, 5]
 
 var _state := State.OFFLINE
 
@@ -16,45 +14,47 @@ var _state := State.OFFLINE
 @onready var name_edit: LineEdit = %NameEdit
 @onready var swatches: HBoxContainer = %Swatches
 @onready var rounds_row: HBoxContainer = %RoundsRow
-@onready var rounds_option: OptionButton = %Rounds
+@onready var rounds_opt: OptionButton = %Rounds
 @onready var connect_box: VBoxContainer = %ConnectBox
-@onready var host_button: Button = %HostButton
-@onready var address_edit: LineEdit = %Address
-@onready var join_button: Button = %JoinButton
+@onready var host_btn: Button = %HostButton
+@onready var code_edit: LineEdit = %CodeEdit
+@onready var join_btn: Button = %JoinButton
 @onready var room_box: VBoxContainer = %RoomBox
 @onready var player_list: VBoxContainer = %PlayerList
-@onready var start_button: Button = %StartButton
+@onready var start_btn: Button = %StartButton
 @onready var room_hint: Label = %RoomHint
-@onready var leave_button: Button = %LeaveButton
-@onready var status_label: Label = %Status
+@onready var leave_btn: Button = %LeaveButton
+@onready var status_lbl: Label = %Status
 
 
 func _ready() -> void:
 	level_spawner.add_spawnable_scene(GAME_SCENE.resource_path)
 	level_spawner.spawned.connect(_on_game_spawned)
 
-	for rounds in ROUND_OPTIONS:
-		rounds_option.add_item("Best of %d" % rounds)
-	rounds_option.select(ROUND_OPTIONS.find(Network.best_of))
-	name_edit.max_length = Network.MAX_NAME_LENGTH
+	for n in ROUND_OPTS:
+		rounds_opt.add_item("Best of %d" % n)
+	rounds_opt.select(ROUND_OPTS.find(Network.best_of))
+	name_edit.max_length = Network.MAX_NAME_LEN
 	name_edit.text = Network.my_name
 	name_edit.text_changed.connect(_on_name_changed)
+	code_edit.max_length = Network.CODE_LEN
+	code_edit.text_submitted.connect(_on_join.unbind(1))
 	_build_swatches()
 
-	host_button.pressed.connect(_on_host_pressed)
-	join_button.pressed.connect(_on_join_pressed)
-	start_button.pressed.connect(_on_start_pressed)
-	leave_button.pressed.connect(_return_to_lobby)
+	host_btn.pressed.connect(_on_host)
+	join_btn.pressed.connect(_on_join)
+	start_btn.pressed.connect(_on_start)
+	leave_btn.pressed.connect(_return_to_lobby)
 	Network.roster_changed.connect(_refresh)
+	Network.room_opened.connect(_on_room_opened)
+	Network.failed.connect(_return_to_lobby)
+	Network.status.connect(func(msg: String): status_lbl.text = msg)
 
 	multiplayer.peer_disconnected.connect(_on_peer_disconnected)
-	multiplayer.connected_to_server.connect(_on_connected_to_server)
-	multiplayer.connection_failed.connect(_on_connection_failed)
+	multiplayer.connected_to_server.connect(_on_connected)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 	_refresh()
 
-
-# --- Name and colour ---
 
 func _on_name_changed(new_name: String) -> void:
 	Network.my_name = new_name
@@ -62,8 +62,8 @@ func _on_name_changed(new_name: String) -> void:
 	Network.submit_profile()
 
 
-func _on_swatch_pressed(color: int) -> void:
-	Network.my_color = color
+func _on_swatch(idx: int) -> void:
+	Network.my_color = idx
 	Network.save_profile()
 	Network.submit_profile()
 	_refresh()
@@ -71,25 +71,25 @@ func _on_swatch_pressed(color: int) -> void:
 
 func _build_swatches() -> void:
 	for i in Network.PALETTE.size():
-		var swatch := Button.new()
-		swatch.custom_minimum_size = Vector2(30, 30)
-		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		swatch.focus_mode = Control.FOCUS_NONE
-		swatch.tooltip_text = Network.PALETTE_NAMES[i]
-		swatch.pressed.connect(_on_swatch_pressed.bind(i))
-		swatches.add_child(swatch)
+		var sw := Button.new()
+		sw.custom_minimum_size = Vector2(30, 30)
+		sw.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		sw.focus_mode = Control.FOCUS_NONE
+		sw.tooltip_text = Network.COLOR_NAMES[i]
+		sw.pressed.connect(_on_swatch.bind(i))
+		swatches.add_child(sw)
 
 
-## In the room the server's roster is the truth; offline it's my preference.
+# in a room the server's roster wins, offline it's just the saved pick
 func _my_color() -> int:
-	var slot := Network.local_slot()
+	var slot := Network.my_slot()
 	if _state == State.ROOM and Network.roster.has(slot):
 		return Network.roster[slot]["color"]
 	return Network.my_color
 
 
-func _opponent_color() -> int:
-	var slot := 1 - Network.local_slot()
+func _opp_color() -> int:
+	var slot := 1 - Network.my_slot()
 	if _state == State.ROOM and Network.roster.has(slot):
 		return Network.roster[slot]["color"]
 	return -1
@@ -97,87 +97,98 @@ func _opponent_color() -> int:
 
 func _refresh_swatches() -> void:
 	var mine := _my_color()
-	var taken := _opponent_color()
+	var taken := _opp_color()
 	for i in swatches.get_child_count():
-		var swatch: Button = swatches.get_child(i)
-		swatch.disabled = i == taken
-		swatch.text = "X" if i == taken else ""
-		# Round neon swatch. The picked one gets a white ring and a soft glow.
-		var style := StyleBoxFlat.new()
-		style.bg_color = Network.PALETTE[i].darkened(0.7) if i == taken else Network.PALETTE[i]
-		style.set_corner_radius_all(15)
-		style.border_color = Color(0.91, 0.98, 1.0)
-		style.set_border_width_all(3 if i == mine else 0)
+		var sw: Button = swatches.get_child(i)
+		var col := Network.PALETTE[i]
+		sw.disabled = i == taken
+		sw.text = "X" if i == taken else ""
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = col.darkened(0.7) if i == taken else col
+		sb.set_corner_radius_all(15)
+		sb.border_color = Color(0.91, 0.98, 1.0)
+		sb.set_border_width_all(3 if i == mine else 0)
 		if i == mine:
-			style.shadow_color = Color(Network.PALETTE[i], 0.7)
-			style.shadow_size = 10
-		var hover := style.duplicate()
+			sb.shadow_color = Color(col, 0.7)
+			sb.shadow_size = 10
+		var hover := sb.duplicate()
 		if i != mine and i != taken:
-			hover.bg_color = Network.PALETTE[i].lightened(0.25)
-		for state in ["normal", "pressed", "disabled", "focus"]:
-			swatch.add_theme_stylebox_override(state, style)
-		swatch.add_theme_stylebox_override("hover", hover)
-		swatch.add_theme_color_override("font_disabled_color", Color(0.48, 0.5, 0.66))
+			hover.bg_color = col.lightened(0.25)
+		for s in ["normal", "pressed", "disabled", "focus"]:
+			sw.add_theme_stylebox_override(s, sb)
+		sw.add_theme_stylebox_override("hover", hover)
+		sw.add_theme_color_override("font_disabled_color", Color(0.48, 0.5, 0.66))
 
 
-# --- Connecting ---
-
-func _on_host_pressed() -> void:
+func _on_host() -> void:
 	var err := Network.host_game()
 	if err != OK:
-		status_label.text = "Could not host on port %d (%s)." % [Network.DEFAULT_PORT, error_string(err)]
-		return
-	_state = State.ROOM
-	status_label.text = ""
-	_refresh()
-
-
-func _on_join_pressed() -> void:
-	var address := address_edit.text.strip_edges()
-	if address.is_empty():
-		status_label.text = "Type the host's IP address first."
-		return
-	var err := Network.join_game(address)
-	if err != OK:
-		status_label.text = "Could not connect (%s)." % error_string(err)
+		status_lbl.text = _err_text(err)
 		return
 	_state = State.CONNECTING
-	status_label.text = "Connecting to %s..." % address
+	status_lbl.text = "Opening a room..."
 	_refresh()
 
 
-func _on_connected_to_server() -> void:
+func _on_room_opened() -> void:
 	_state = State.ROOM
-	status_label.text = ""
+	status_lbl.text = ""
 	_refresh()
 
 
-func _on_start_pressed() -> void:
+func _on_join() -> void:
+	if _state != State.OFFLINE:
+		return
+	var code := code_edit.text.strip_edges().to_upper()
+	if code.is_empty():
+		status_lbl.text = "Type the room code first."
+		return
+	var err := Network.join_game(code)
+	if err != OK:
+		status_lbl.text = _err_text(err)
+		return
+	_state = State.CONNECTING
+	status_lbl.text = "Joining %s..." % code
+	_refresh()
+
+
+func _err_text(err: Error) -> String:
+	if err == ERR_UNAVAILABLE:
+		return "WebRTC not available (desktop needs the webrtc-native plugin)."
+	return "Couldn't start (%s)." % error_string(err)
+
+
+func _on_connected() -> void:
+	_state = State.ROOM
+	status_lbl.text = ""
+	_refresh()
+
+
+func _on_start() -> void:
 	if not multiplayer.is_server() or Network.roster.size() < 2:
 		return
-	Network.best_of = ROUND_OPTIONS[rounds_option.selected]
+	Network.best_of = ROUND_OPTS[rounds_opt.selected]
 	var game: Game = GAME_SCENE.instantiate()
 	game.exit_requested.connect(_return_to_lobby)
 	level.add_child(game, true)
 	lobby.hide()
 
 
-## Client side: the host's Game scene has arrived.
 func _on_game_spawned(node: Node) -> void:
 	node.exit_requested.connect(_return_to_lobby)
 	lobby.hide()
 
 
-func _on_peer_disconnected(_peer_id: int) -> void:
+func _on_peer_disconnected(_pid: int) -> void:
 	if multiplayer.is_server():
 		_opponent_left.call_deferred()
 
 
-## Host side: keep hosting and go back to the room to wait for someone new.
+# host keeps the room open and waits for someone new
 func _opponent_left() -> void:
 	_close_game()
 	lobby.show()
-	status_label.text = "Your opponent left."
+	status_lbl.text = "Your opponent left."
 	_refresh()
 
 
@@ -185,26 +196,20 @@ func _on_server_disconnected() -> void:
 	_return_to_lobby.call_deferred("The host left.")
 
 
-func _on_connection_failed() -> void:
-	_return_to_lobby.call_deferred("Could not reach the host. Check the IP and that you're on the same network.")
-
-
-func _return_to_lobby(message := "") -> void:
+func _return_to_lobby(msg := "") -> void:
 	_close_game()
 	Network.leave_game()
 	_state = State.OFFLINE
 	lobby.show()
-	status_label.text = message
+	status_lbl.text = msg
 	_refresh()
 
 
 func _close_game() -> void:
-	for child in level.get_children():
-		level.remove_child(child)
-		child.queue_free()
+	for c in level.get_children():
+		level.remove_child(c)
+		c.queue_free()
 
-
-# --- UI state ---
 
 func _refresh() -> void:
 	var in_room := _state == State.ROOM
@@ -212,50 +217,49 @@ func _refresh() -> void:
 	var full := Network.roster.size() == 2
 
 	connect_box.visible = not in_room
-	host_button.disabled = _state != State.OFFLINE
-	join_button.disabled = _state != State.OFFLINE
-	address_edit.editable = _state == State.OFFLINE
+	host_btn.disabled = _state != State.OFFLINE
+	join_btn.disabled = _state != State.OFFLINE
+	code_edit.editable = _state == State.OFFLINE
 	rounds_row.visible = not in_room or is_host
 	room_box.visible = in_room
-	start_button.visible = is_host
-	start_button.disabled = not full
-	leave_button.visible = _state != State.OFFLINE
+	start_btn.visible = is_host
+	start_btn.disabled = not full
+	leave_btn.visible = _state != State.OFFLINE
 
 	if is_host and not full:
-		var addresses := Network.get_lan_addresses()
-		room_hint.text = "Waiting for an opponent...\nThey should join: %s" % (
-				"  or  ".join(addresses) if not addresses.is_empty() else "(no LAN address found)")
+		room_hint.text = "Waiting for an opponent...\nRoom code:  %s" % Network.room_code
 	elif is_host:
 		room_hint.text = "Opponent is here. Press Start Match when you're both ready."
 	else:
 		room_hint.text = "Waiting for the host to start the match..."
 
-	_refresh_player_list()
+	_refresh_players()
 	_refresh_swatches()
 
 
-func _refresh_player_list() -> void:
-	for child in player_list.get_children():
-		child.queue_free()
+func _refresh_players() -> void:
+	for c in player_list.get_children():
+		c.queue_free()
 	for slot in [0, 1]:
 		if not Network.roster.has(slot):
 			continue
+		var col := Network.color_of(slot)
 		var row := HBoxContainer.new()
 		var chip := Panel.new()
 		chip.custom_minimum_size = Vector2(16, 16)
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
-		var chip_style := StyleBoxFlat.new()
-		chip_style.bg_color = Network.get_color(slot)
-		chip_style.set_corner_radius_all(8)
-		chip_style.shadow_color = Color(Network.get_color(slot), 0.6)
-		chip_style.shadow_size = 6
-		chip.add_theme_stylebox_override("panel", chip_style)
-		var label := Label.new()
-		label.text = Network.get_player_name(slot)
+		var sb := StyleBoxFlat.new()
+		sb.bg_color = col
+		sb.set_corner_radius_all(8)
+		sb.shadow_color = Color(col, 0.6)
+		sb.shadow_size = 6
+		chip.add_theme_stylebox_override("panel", sb)
+		var lbl := Label.new()
+		lbl.text = Network.name_of(slot)
 		if slot == 0:
-			label.text += "  (host)"
-		if slot == Network.local_slot():
-			label.text += "  - you"
+			lbl.text += "  (host)"
+		if slot == Network.my_slot():
+			lbl.text += "  - you"
 		row.add_child(chip)
-		row.add_child(label)
+		row.add_child(lbl)
 		player_list.add_child(row)

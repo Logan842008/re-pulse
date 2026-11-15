@@ -212,7 +212,7 @@ text = "HOST"
 layout_mode = 2
 size_flags_vertical = 3
 theme_type_variation = &"MutedLabel"
-text = "Open a room on this PC"
+text = "Open a room and share the code"
 vertical_alignment = 1
 
 [node name="HostButton" type="Button" parent="Lobby/Center/Layout/Panel/Box/ConnectBox/Columns/HostCol" unique_id=1475611738]
@@ -233,11 +233,10 @@ layout_mode = 2
 theme_type_variation = &"HeaderLabelPink"
 text = "JOIN"
 
-[node name="Address" type="LineEdit" parent="Lobby/Center/Layout/Panel/Box/ConnectBox/Columns/JoinCol" unique_id=347140839]
+[node name="CodeEdit" type="LineEdit" parent="Lobby/Center/Layout/Panel/Box/ConnectBox/Columns/JoinCol" unique_id=347140839]
 unique_name_in_owner = true
 layout_mode = 2
-text = "127.0.0.1"
-placeholder_text = "Host's IP address"
+placeholder_text = "Room code"
 
 [node name="JoinButton" type="Button" parent="Lobby/Center/Layout/Panel/Box/ConnectBox/Columns/JoinCol" unique_id=668137926]
 unique_name_in_owner = true

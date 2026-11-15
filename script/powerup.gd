@@ -1,6 +1,5 @@
 class_name Powerup
 extends Area2D
-## A pickup lying on the map. The server detects who walks over it first.
 
 enum Kind { HEALTH, WEAPON }
 
@@ -18,7 +17,6 @@ func _ready() -> void:
 
 
 func _process(_delta: float) -> void:
-	# Gentle pulse so pickups catch the eye.
 	var t := Time.get_ticks_msec() / 1000.0
 	var pulse := 1.0 + 0.08 * sin(t * 4.0)
 	$HealthVisual.scale = Vector2.ONE * pulse
@@ -28,4 +26,4 @@ func _process(_delta: float) -> void:
 
 func _on_body_entered(body: Node2D) -> void:
 	if body is Player:
-		game.on_powerup_touched(self, body)
+		game.on_pickup(self, body)

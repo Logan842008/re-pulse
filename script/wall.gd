@@ -1,28 +1,27 @@
 @tool
 class_name Wall
 extends StaticBody2D
-## A rectangular wall or obstacle that bullets ricochet off. Set [member size]
-## in the inspector; the collision shape and placeholder visual follow it.
+# set size in the inspector, the collision shape and visuals follow it
 
 @export var size := Vector2(64, 64):
-	set(value):
-		size = value
+	set(v):
+		size = v
 		_update()
 
-@export var color := Color(0.078, 0.078, 0.227): ## Fill colour (dark indigo).
-	set(value):
-		color = value
+@export var color := Color(0.078, 0.078, 0.227):
+	set(v):
+		color = v
 		_update()
 
-## Edge colour. Values above 1 glow through the WorldEnvironment in main.tscn.
+# above 1 glows through the WorldEnvironment
 @export var outline_color := Color(0.0, 1.5, 1.7):
-	set(value):
-		outline_color = value
+	set(v):
+		outline_color = v
 		_update()
 
 @export var outline_width := 2.0:
-	set(value):
-		outline_width = value
+	set(v):
+		outline_width = v
 		_update()
 
 
@@ -36,11 +35,11 @@ func _update() -> void:
 	var shape := RectangleShape2D.new()
 	shape.size = size
 	$CollisionShape2D.shape = shape
-	var half := size / 2.0
-	$Visual.polygon = PackedVector2Array([-half, Vector2(half.x, -half.y), half, Vector2(-half.x, half.y)])
+	var h := size / 2.0
+	$Visual.polygon = PackedVector2Array([-h, Vector2(h.x, -h.y), h, Vector2(-h.x, h.y)])
 	$Visual.color = color
-	# Glowing edge, drawn just inside the shape so it lines up with the collision.
-	var inset := half - Vector2.ONE * outline_width / 2.0
-	$Outline.points = PackedVector2Array([-inset, Vector2(inset.x, -inset.y), inset, Vector2(-inset.x, inset.y)])
+	# outline sits just inside the edge so it lines up with the collision
+	var i := h - Vector2.ONE * outline_width / 2.0
+	$Outline.points = PackedVector2Array([-i, Vector2(i.x, -i.y), i, Vector2(-i.x, i.y)])
 	$Outline.width = outline_width
 	$Outline.default_color = outline_color
