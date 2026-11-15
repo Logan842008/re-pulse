@@ -1,0 +1,10 @@
+[gd_resource type="Theme" format=3 uid="uid://b237s7tbaltyd"]
+
+[ext_resource type="FontFile" uid="uid://dc06r1d8tsql6" path="res://Rajdhani-SemiBold.ttf" id="1_j3n6p"]
+
+[resource]
+default_base_scale = 20.0
+default_font = ExtResource("1_j3n6p")
+Label/colors/font_color = Color(0.9098039, 0.9843137, 1, 1)
+Label/colors/font_outline_color = Color(0, 0, 0, 1)
+Label/colors/font_shadow_color = Color(0, 0, 0, 0)

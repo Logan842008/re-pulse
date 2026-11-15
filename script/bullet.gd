@@ -57,7 +57,11 @@ func _physics_process(delta: float) -> void:
 		if ricochets >= max_ricochets:
 			_expire()
 			return
+<<<<<<< Updated upstream
 		# Reflect the velocity across the surface normal: angle in = angle out.
+=======
+
+>>>>>>> Stashed changes
 		var normal := collision.get_normal()
 		velocity = velocity.bounce(normal)
 		motion = collision.get_remainder().bounce(normal)

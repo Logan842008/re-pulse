@@ -185,7 +185,10 @@ func _on_rematch_pressed() -> void:
 		_start_match()
 
 
+<<<<<<< Updated upstream
 # --- Server: combat and pickups ---
+=======
+>>>>>>> Stashed changes
 
 @rpc("any_peer", "reliable")
 func _server_shoot(origin: Vector2, direction: Vector2) -> void:

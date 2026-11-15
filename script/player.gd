@@ -23,12 +23,18 @@ func _ready() -> void:
 	$Body.color = color
 	$Pivot/Gun.color = color.lightened(0.5)
 	$NameTag/Label.text = Network.get_player_name(slot)
+<<<<<<< Updated upstream
 	# Counter the flipped camera so the name reads upright, above the player on screen.
+=======
+>>>>>>> Stashed changes
 	$NameTag.rotation = game.view_rotation()
 
 
 func _process(_delta: float) -> void:
+<<<<<<< Updated upstream
 	# Blink while spawn protection is on.
+=======
+>>>>>>> Stashed changes
 	var blink_off := game.is_protected(slot) and Time.get_ticks_msec() % 200 < 100
 	modulate.a = 0.35 if blink_off else 1.0
 
@@ -42,7 +48,10 @@ func _physics_process(delta: float) -> void:
 		velocity = Vector2.ZERO
 		return
 
+<<<<<<< Updated upstream
 	# Input is in screen space; turn it with the camera so W is always "up on my screen".
+=======
+>>>>>>> Stashed changes
 	var input := Input.get_vector("move_left", "move_right", "move_up", "move_down")
 	velocity = input.rotated(game.view_rotation()) * speed
 	move_and_slide()
@@ -67,7 +76,10 @@ func _push_out_of_opponent() -> void:
 		var overlap := body_size - offset.abs()
 		if overlap.x <= 0.0 or overlap.y <= 0.0:
 			continue
+<<<<<<< Updated upstream
 		# Separate along whichever axis overlaps least.
+=======
+>>>>>>> Stashed changes
 		var push := Vector2(signf(offset.x) * overlap.x, 0.0) if overlap.x < overlap.y \
 				else Vector2(0.0, signf(offset.y) * overlap.y)
 		move_and_collide(push * 0.5)
@@ -76,7 +88,11 @@ func _push_out_of_opponent() -> void:
 func _shoot() -> void:
 	var direction := Vector2.RIGHT.rotated(pivot.global_rotation)
 	var origin := global_position + direction * muzzle_distance
+<<<<<<< Updated upstream
 	# If the gun pokes into a wall, fire from just in front of the wall instead.
+=======
+	# prevent overlap
+>>>>>>> Stashed changes
 	var query := PhysicsRayQueryParameters2D.create(global_position, origin, WALL_LAYER)
 	var hit := get_world_2d().direct_space_state.intersect_ray(query)
 	if hit:

@@ -3,7 +3,11 @@ extends Node
 signal roster_changed
 
 const DEFAULT_PORT := 7777
+<<<<<<< Updated upstream
 const MAX_CLIENTS := 1 # 1v1: the host plus one client.
+=======
+const MAX_CLIENTS := 1
+>>>>>>> Stashed changes
 const MAX_NAME_LENGTH := 16
 const PROFILE_PATH := "user://profile.cfg"
 
@@ -117,7 +121,10 @@ func _apply_profile(peer_id: int, player_name: String, color: int) -> void:
 	var slot := slot_of(peer_id)
 	var taken: int = roster[1 - slot]["color"] if roster.has(1 - slot) else -1
 	if color < 0 or color >= PALETTE.size() or color == taken:
+<<<<<<< Updated upstream
 		# Keep the colour they already have, or give them the first free one.
+=======
+>>>>>>> Stashed changes
 		color = roster[slot]["color"] if roster.has(slot) else (1 if taken == 0 else 0)
 	player_name = player_name.strip_edges().left(MAX_NAME_LENGTH)
 	if player_name.is_empty():
