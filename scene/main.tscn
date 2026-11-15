@@ -1,98 +1,101 @@
 [gd_scene format=3 uid="uid://cimyeceio57e5"]
 
 [ext_resource type="Script" uid="uid://ceekt2vo44qad" path="res://script/main.gd" id="1_main"]
+[ext_resource type="Theme" uid="uid://b237s7tbaltyd" path="res://lobby_theme.tres" id="2_brvut"]
+[ext_resource type="Texture2D" uid="uid://86cd2wdm1gj7" path="res://grid_tile.png" id="2_wp4xf"]
 
-[node name="Main" type="Node" unique_id=1196509834]
+[node name="Main" type="Node" unique_id=1461576816]
 script = ExtResource("1_main")
 
-[node name="Level" type="Node" parent="." unique_id=708971476]
+[node name="Level" type="Node" parent="." unique_id=2066302113]
 
-[node name="LevelSpawner" type="MultiplayerSpawner" parent="." unique_id=609538910]
+[node name="LevelSpawner" type="MultiplayerSpawner" parent="." unique_id=2058525963]
 spawn_path = NodePath("../Level")
 spawn_limit = 1
 
-[node name="Lobby" type="CanvasLayer" parent="." unique_id=585615022]
+[node name="Lobby" type="CanvasLayer" parent="." unique_id=298423852]
 
-[node name="Center" type="CenterContainer" parent="Lobby" unique_id=1189966117]
+[node name="Center" type="CenterContainer" parent="Lobby" unique_id=609361043]
 anchors_preset = 15
 anchor_right = 1.0
 anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
+theme = ExtResource("2_brvut")
 
-[node name="Box" type="VBoxContainer" parent="Lobby/Center" unique_id=1415090459]
+[node name="Box" type="VBoxContainer" parent="Lobby/Center" unique_id=392232833]
 custom_minimum_size = Vector2(420, 0)
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="Title" type="Label" parent="Lobby/Center/Box" unique_id=270046261]
+[node name="Title" type="Label" parent="Lobby/Center/Box" unique_id=1634979805]
 layout_mode = 2
 theme_override_font_sizes/font_size = 48
 text = "RE:PULSE"
 horizontal_alignment = 1
 
-[node name="Subtitle" type="Label" parent="Lobby/Center/Box" unique_id=1672802825]
+[node name="Subtitle" type="Label" parent="Lobby/Center/Box" unique_id=1274004194]
 layout_mode = 2
 text = "Bullets only hurt after they ricochet."
 horizontal_alignment = 1
 
-[node name="NameRow" type="HBoxContainer" parent="Lobby/Center/Box" unique_id=2043681954]
+[node name="NameRow" type="HBoxContainer" parent="Lobby/Center/Box" unique_id=686848469]
 layout_mode = 2
 
-[node name="NameLabel" type="Label" parent="Lobby/Center/Box/NameRow" unique_id=2111550257]
+[node name="NameLabel" type="Label" parent="Lobby/Center/Box/NameRow" unique_id=892096126]
 custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
 text = "Name"
 
-[node name="NameEdit" type="LineEdit" parent="Lobby/Center/Box/NameRow" unique_id=1042796631]
+[node name="NameEdit" type="LineEdit" parent="Lobby/Center/Box/NameRow" unique_id=988954592]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 placeholder_text = "Your name"
 
-[node name="ColorRow" type="HBoxContainer" parent="Lobby/Center/Box" unique_id=2114484701]
+[node name="ColorRow" type="HBoxContainer" parent="Lobby/Center/Box" unique_id=186131095]
 layout_mode = 2
 
-[node name="ColorLabel" type="Label" parent="Lobby/Center/Box/ColorRow" unique_id=1198616665]
+[node name="ColorLabel" type="Label" parent="Lobby/Center/Box/ColorRow" unique_id=1931290394]
 custom_minimum_size = Vector2(70, 0)
 layout_mode = 2
 text = "Colour"
 
-[node name="Swatches" type="HBoxContainer" parent="Lobby/Center/Box/ColorRow" unique_id=1723407293]
+[node name="Swatches" type="HBoxContainer" parent="Lobby/Center/Box/ColorRow" unique_id=2032780413]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 8
 
-[node name="HSeparator" type="HSeparator" parent="Lobby/Center/Box" unique_id=1584990226]
+[node name="HSeparator" type="HSeparator" parent="Lobby/Center/Box" unique_id=98697015]
 layout_mode = 2
 
-[node name="RoundsRow" type="HBoxContainer" parent="Lobby/Center/Box" unique_id=1997873637]
+[node name="RoundsRow" type="HBoxContainer" parent="Lobby/Center/Box" unique_id=1934637967]
 unique_name_in_owner = true
 layout_mode = 2
 
-[node name="RoundsLabel" type="Label" parent="Lobby/Center/Box/RoundsRow" unique_id=64470566]
+[node name="RoundsLabel" type="Label" parent="Lobby/Center/Box/RoundsRow" unique_id=540528591]
 layout_mode = 2
 text = "Match length (host picks):"
 
-[node name="Rounds" type="OptionButton" parent="Lobby/Center/Box/RoundsRow" unique_id=1388971530]
+[node name="Rounds" type="OptionButton" parent="Lobby/Center/Box/RoundsRow" unique_id=1035157570]
 unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
-[node name="ConnectBox" type="VBoxContainer" parent="Lobby/Center/Box" unique_id=1944913408]
+[node name="ConnectBox" type="VBoxContainer" parent="Lobby/Center/Box" unique_id=602937447]
 unique_name_in_owner = true
 layout_mode = 2
 theme_override_constants/separation = 10
 
-[node name="HostButton" type="Button" parent="Lobby/Center/Box/ConnectBox" unique_id=664190581]
+[node name="HostButton" type="Button" parent="Lobby/Center/Box/ConnectBox" unique_id=1475611738]
 unique_name_in_owner = true
 layout_mode = 2
 text = "Host Game"
 
-[node name="HSeparator" type="HSeparator" parent="Lobby/Center/Box/ConnectBox" unique_id=1159449509]
+[node name="HSeparator" type="HSeparator" parent="Lobby/Center/Box/ConnectBox" unique_id=1402306523]
 layout_mode = 2
 
-[node name="Address" type="LineEdit" parent="Lobby/Center/Box/ConnectBox" unique_id=1128858916]
+[node name="Address" type="LineEdit" parent="Lobby/Center/Box/ConnectBox" unique_id=347140839]
 unique_name_in_owner = true
 layout_mode = 2
 text = "127.0.0.1"

@@ -32,8 +32,6 @@ func _ready() -> void:
 
 	for rounds in ROUND_OPTIONS:
 		rounds_option.add_item("Best of %d" % rounds)
-		
-	
 	rounds_option.select(ROUND_OPTIONS.find(Network.best_of))
 	name_edit.max_length = Network.MAX_NAME_LENGTH
 	name_edit.text = Network.my_name
@@ -52,12 +50,7 @@ func _ready() -> void:
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 	_refresh()
 
-<<<<<<< Updated upstream
 
-# --- Name and colour ---
-
-=======
->>>>>>> Stashed changes
 func _on_name_changed(new_name: String) -> void:
 	Network.my_name = new_name
 	Network.save_profile()
@@ -81,10 +74,6 @@ func _build_swatches() -> void:
 		swatches.add_child(swatch)
 
 
-<<<<<<< Updated upstream
-## In the room the server's roster is the truth; offline it's my preference.
-=======
->>>>>>> Stashed changes
 func _my_color() -> int:
 	var slot := Network.local_slot()
 	if _state == State.ROOM and Network.roster.has(slot):
@@ -114,8 +103,6 @@ func _refresh_swatches() -> void:
 		for state in ["normal", "hover", "pressed", "disabled"]:
 			swatch.add_theme_stylebox_override(state, style)
 
-
-# connecting
 
 func _on_host_pressed() -> void:
 	var err := Network.host_game()
@@ -167,7 +154,6 @@ func _on_peer_disconnected(_peer_id: int) -> void:
 		_opponent_left.call_deferred()
 
 
-## second player left
 func _opponent_left() -> void:
 	_close_game()
 	lobby.show()
@@ -198,11 +184,6 @@ func _close_game() -> void:
 		child.queue_free()
 
 
-<<<<<<< Updated upstream
-# --- UI state ---
-
-=======
->>>>>>> Stashed changes
 func _refresh() -> void:
 	var in_room := _state == State.ROOM
 	var is_host := in_room and multiplayer.is_server()

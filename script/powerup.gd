@@ -1,6 +1,5 @@
 class_name Powerup
 extends Area2D
-## A pickup lying on the map. The server detects who walks over it first.
 
 enum Kind { HEALTH, WEAPON }
 

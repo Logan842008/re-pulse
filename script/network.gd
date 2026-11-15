@@ -3,15 +3,10 @@ extends Node
 signal roster_changed
 
 const DEFAULT_PORT := 7777
-<<<<<<< Updated upstream
-const MAX_CLIENTS := 1 # 1v1: the host plus one client.
-=======
 const MAX_CLIENTS := 1
->>>>>>> Stashed changes
 const MAX_NAME_LENGTH := 16
 const PROFILE_PATH := "user://profile.cfg"
 
-## character colours!!
 const PALETTE: Array[Color] = [
 	Color(0.3, 0.6, 1.0),
 	Color(1.0, 0.35, 0.35),
@@ -23,10 +18,10 @@ const PALETTE: Array[Color] = [
 const PALETTE_NAMES: Array[String] = ["Blue", "Red", "Purple", "Orange", "Cyan", "Pink"]
 
 var best_of := 3
+
 var my_name := ""
 var my_color := 0
 
-## players in the game
 var roster := {}
 
 
@@ -78,7 +73,6 @@ func get_player_name(slot: int) -> String:
 	return roster[slot]["name"] if roster.has(slot) else "Player %d" % (slot + 1)
 
 
-## IPv4 addresses to join others
 func get_lan_addresses() -> PackedStringArray:
 	var result := PackedStringArray()
 	for address in IP.get_local_addresses():
@@ -116,15 +110,10 @@ func _receive_profile(player_name: String, color: int) -> void:
 		_apply_profile(multiplayer.get_remote_sender_id(), player_name, color)
 
 
-
 func _apply_profile(peer_id: int, player_name: String, color: int) -> void:
 	var slot := slot_of(peer_id)
 	var taken: int = roster[1 - slot]["color"] if roster.has(1 - slot) else -1
 	if color < 0 or color >= PALETTE.size() or color == taken:
-<<<<<<< Updated upstream
-		# Keep the colour they already have, or give them the first free one.
-=======
->>>>>>> Stashed changes
 		color = roster[slot]["color"] if roster.has(slot) else (1 if taken == 0 else 0)
 	player_name = player_name.strip_edges().left(MAX_NAME_LENGTH)
 	if player_name.is_empty():
