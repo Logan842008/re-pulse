@@ -67,7 +67,8 @@ func _on_swatch_pressed(color: int) -> void:
 func _build_swatches() -> void:
 	for i in Network.PALETTE.size():
 		var swatch := Button.new()
-		swatch.custom_minimum_size = Vector2(36, 36)
+		swatch.custom_minimum_size = Vector2(30, 30)
+		swatch.size_flags_vertical = Control.SIZE_SHRINK_CENTER
 		swatch.focus_mode = Control.FOCUS_NONE
 		swatch.tooltip_text = Network.PALETTE_NAMES[i]
 		swatch.pressed.connect(_on_swatch_pressed.bind(i))
@@ -96,12 +97,20 @@ func _refresh_swatches() -> void:
 		swatch.disabled = i == taken
 		swatch.text = "X" if i == taken else ""
 		var style := StyleBoxFlat.new()
-		style.bg_color = Network.PALETTE[i].darkened(0.6) if i == taken else Network.PALETTE[i]
-		style.border_color = Color.WHITE
+		style.bg_color = Network.PALETTE[i].darkened(0.7) if i == taken else Network.PALETTE[i]
+		style.set_corner_radius_all(15)
+		style.border_color = Color(0.91, 0.98, 1.0)
 		style.set_border_width_all(3 if i == mine else 0)
-		style.set_corner_radius_all(4)
-		for state in ["normal", "hover", "pressed", "disabled"]:
+		if i == mine:
+			style.shadow_color = Color(Network.PALETTE[i], 0.7)
+			style.shadow_size = 10
+		var hover := style.duplicate()
+		if i != mine and i != taken:
+			hover.bg_color = Network.PALETTE[i].lightened(0.25)
+		for state in ["normal", "pressed", "disabled", "focus"]:
 			swatch.add_theme_stylebox_override(state, style)
+		swatch.add_theme_stylebox_override("hover", hover)
+		swatch.add_theme_color_override("font_disabled_color", Color(0.48, 0.5, 0.66))
 
 
 func _on_host_pressed() -> void:
@@ -219,10 +228,15 @@ func _refresh_player_list() -> void:
 		if not Network.roster.has(slot):
 			continue
 		var row := HBoxContainer.new()
-		var chip := ColorRect.new()
-		chip.custom_minimum_size = Vector2(18, 18)
-		chip.color = Network.get_color(slot)
+		var chip := Panel.new()
+		chip.custom_minimum_size = Vector2(16, 16)
 		chip.size_flags_vertical = Control.SIZE_SHRINK_CENTER
+		var chip_style := StyleBoxFlat.new()
+		chip_style.bg_color = Network.get_color(slot)
+		chip_style.set_corner_radius_all(8)
+		chip_style.shadow_color = Color(Network.get_color(slot), 0.6)
+		chip_style.shadow_size = 6
+		chip.add_theme_stylebox_override("panel", chip_style)
 		var label := Label.new()
 		label.text = Network.get_player_name(slot)
 		if slot == 0:

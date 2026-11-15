@@ -1,10 +1,8 @@
 extends Node2D
-## Menu background: a few pulse orbs bouncing around the screen with fading
-## trails, to show off the ricochet idea before the match starts. Purely visual.
 
 @export var orb_count := 3
 @export var speed := 220.0
-@export var margin := 22.0 ## Keeps orbs inside the arena border.
+@export var margin := 22.0
 @export var trail_length := 14
 @export var colors: Array[Color] = [Color(0.0, 1.8, 2.0), Color(2.0, 0.3, 1.7), Color(0.0, 1.8, 2.0)]
 
@@ -47,7 +45,6 @@ func _process(delta: float) -> void:
 		orb.position = pos.clamp(area.position, area.end)
 		data["velocity"] = velocity
 
-		# Brief bright flash on every wall hit.
 		data["flash"] = maxf(data["flash"] - delta * 5.0, 0.0)
 		orb.modulate = Color.WHITE * (1.0 + 1.5 * data["flash"])
 		orb.modulate.a = 1.0

@@ -16,6 +16,14 @@ func _ready() -> void:
 		monitoring = false
 
 
+func _process(_delta: float) -> void:
+	var t := Time.get_ticks_msec() / 1000.0
+	var pulse := 1.0 + 0.08 * sin(t * 4.0)
+	$HealthVisual.scale = Vector2.ONE * pulse
+	$WeaponVisual.scale = Vector2.ONE * pulse
+	$WeaponVisual.rotation = t * 1.5
+
+
 func _on_body_entered(body: Node2D) -> void:
 	if body is Player:
 		game.on_powerup_touched(self, body)

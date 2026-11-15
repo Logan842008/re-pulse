@@ -20,10 +20,15 @@ var _cooldown := 0.0
 
 func _ready() -> void:
 	var color := Network.get_color(slot)
-	$Body.color = color
-	$Pivot/Gun.color = color.lightened(0.5)
+	$Body.color = color.darkened(0.55)
+	$Edge.default_color = _glow(color, 1.8)
+	$Pivot/Gun.color = _glow(color.lightened(0.35), 1.6)
 	$NameTag/Label.text = Network.get_player_name(slot)
 	$NameTag.rotation = game.view_rotation()
+
+
+static func _glow(c: Color, amount: float) -> Color:
+	return Color(c.r * amount, c.g * amount, c.b * amount, 1.0)
 
 
 func _process(_delta: float) -> void:

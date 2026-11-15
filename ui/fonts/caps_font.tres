@@ -1,6 +1,6 @@
-[gd_resource type="FontVariation" format=3 uid="uid://bbmb0m6q8i1fu"]
+[gd_resource type="FontVariation" format=3]
 
-[ext_resource type="FontFile" uid="uid://dc06r1d8tsql6" path="res://Rajdhani-SemiBold.ttf" id="1_1edsf"]
+[ext_resource type="FontFile" path="res://Rajdhani-SemiBold.ttf" id="1_1edsf"]
 
 [resource]
 base_font = ExtResource("1_1edsf")

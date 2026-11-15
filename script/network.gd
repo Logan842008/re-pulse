@@ -8,12 +8,12 @@ const MAX_NAME_LENGTH := 16
 const PROFILE_PATH := "user://profile.cfg"
 
 const PALETTE: Array[Color] = [
-	Color(0.3, 0.6, 1.0),
-	Color(1.0, 0.35, 0.35),
-	Color(0.7, 0.45, 1.0),
-	Color(1.0, 0.6, 0.2),
-	Color(0.2, 0.9, 0.9),
-	Color(1.0, 0.45, 0.8),
+	Color(0.24, 0.55, 1.0),
+	Color(1.0, 0.3, 0.37),
+	Color(0.71, 0.42, 1.0),
+	Color(1.0, 0.6, 0.18),
+	Color(0.0, 0.94, 1.0),
+	Color(1.0, 0.17, 0.84),
 ]
 const PALETTE_NAMES: Array[String] = ["Blue", "Red", "Purple", "Orange", "Cyan", "Pink"]
 
