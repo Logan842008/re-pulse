@@ -33,20 +33,23 @@ func _init(g: Node, is_3d: bool, om := Callable()) -> void:
 func _ready() -> void:
 	set_anchors_and_offsets_preset(PRESET_FULL_RECT)
 	mouse_filter = MOUSE_FILTER_IGNORE
-	if three:
-		_btns = [
-			["fire", "fire", Vector2(-150, -215), 58.0, "FIRE", false],
-			["scope", "scope", Vector2(-280, -295), 38.0, "SCOPE", true],
-			["jump", "jump", Vector2(-70, -335), 40.0, "JUMP", false],
-			["slide", "crouch", Vector2(-285, -170), 38.0, "SLIDE", false],
-			["menu", "", Vector2(46, 46), 26.0, "MENU", false],
-			["tab", "scoreboard", Vector2(112, 46), 26.0, "SCORES", false],
-		]
-	else:
-		_btns = [["tab", "scoreboard", Vector2(46, 120), 26.0, "SCORES", false]]
+	_btns = layout(three)
 	visibility_changed.connect(func():
 		if not visible:
 			_release_all())
+
+
+static func layout(is_3d: bool) -> Array:
+	if not is_3d:
+		return [["tab", "scoreboard", Vector2(46, 120), 26.0, "SCORES", false]]
+	return [
+		["fire", "fire", Vector2(-150, -215), 58.0, "FIRE", false],
+		["scope", "scope", Vector2(-280, -295), 38.0, "SCOPE", true],
+		["jump", "jump", Vector2(-70, -335), 40.0, "JUMP", false],
+		["slide", "crouch", Vector2(-285, -170), 38.0, "SLIDE", false],
+		["menu", "", Vector2(46, 46), 26.0, "MENU", false],
+		["tab", "scoreboard", Vector2(112, 46), 26.0, "SCORES", false],
+	]
 
 
 func _exit_tree() -> void:

@@ -344,9 +344,19 @@ func _build_mode_select() -> void:
 	_bb.text = "CHANGE"
 	_bb.theme_type_variation = &"PinkButton"
 	_bb.custom_minimum_size = Vector2(100, 30)
+	var kb := Button.new()
+	kb.text = "CONTROLS"
+	kb.theme_type_variation = &"PinkButton"
+	kb.custom_minimum_size = Vector2(120, 30)
+	kb.pressed.connect(_open_controls)
+	row.add_child(kb)
 	_bb.pressed.connect(_show_mode_select)
 	row.add_child(_bb)
 	_show_mode_select()
+
+
+func _open_controls() -> void:
+	lobby.add_child(ControlsScreen.new(Network.is_3d, Controls.touch))
 
 
 func _show_mode_select() -> void:
