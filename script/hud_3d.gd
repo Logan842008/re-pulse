@@ -137,6 +137,7 @@ func _ready() -> void:
 	_hint = _label(_pause, 16, -1, Vector2.ZERO)
 	_hint.text = "Click the game to keep playing"
 	_button(_pause, "RESUME", &"PrimaryButton", Vector2(180, 42), capture)
+	_button(_pause, "CONTROLS", &"PinkButton", Vector2(180, 42), _keys)
 	_rb = _button(_pause, "REMATCH", &"PrimaryButton", Vector2(180, 42), rematch_pressed.emit)
 	_button(_pause, "LEAVE", &"PinkButton", Vector2(100, 44), leave_pressed.emit)
 	_pause.hide()
@@ -195,6 +196,10 @@ func capture() -> void:
 		Controls.paused = false
 	else:
 		Input.mouse_mode = Input.MOUSE_MODE_CAPTURED
+
+
+func _keys() -> void:
+	get_child(0).add_child(ControlsScreen.new(true, Controls.touch))
 
 
 func release() -> void:
