@@ -1,13 +1,10 @@
 [gd_scene format=3]
 
 [ext_resource type="Script" path="res://script/game.gd" id="1_game"]
-[ext_resource type="PackedScene" path="res://scene/map.tscn" id="2_map"]
 [ext_resource type="PackedScene" path="res://scene/hud.tscn" id="3_hud"]
 
 [node name="Game" type="Node2D"]
 script = ExtResource("1_game")
-
-[node name="Map" parent="." instance=ExtResource("2_map")]
 
 [node name="Powerups" type="Node2D" parent="."]
 

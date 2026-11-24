@@ -1,7 +1,6 @@
 @tool
 class_name Wall
 extends StaticBody2D
-# set size in the inspector, the collision shape and visuals follow it
 
 @export var size := Vector2(64, 64):
 	set(v):
@@ -13,7 +12,6 @@ extends StaticBody2D
 		color = v
 		_update()
 
-# above 1 glows through the WorldEnvironment
 @export var outline_color := Color(0.0, 1.5, 1.7):
 	set(v):
 		outline_color = v
@@ -38,7 +36,6 @@ func _update() -> void:
 	var h := size / 2.0
 	$Visual.polygon = PackedVector2Array([-h, Vector2(h.x, -h.y), h, Vector2(-h.x, h.y)])
 	$Visual.color = color
-	# outline sits just inside the edge so it lines up with the collision
 	var i := h - Vector2.ONE * outline_width / 2.0
 	$Outline.points = PackedVector2Array([-i, Vector2(i.x, -i.y), i, Vector2(-i.x, i.y)])
 	$Outline.width = outline_width

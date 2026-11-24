@@ -1,18 +1,17 @@
 extends Node2D
-# menu background, a few orbs bouncing around with trails
 
-@export var orb_count := 3
+@export var orb_count := 6
 @export var speed := 220.0
-@export var margin := 22.0 # stay inside the arena border art
+@export var margin := 22.0
 @export var trail_length := 14
-@export var colors: Array[Color] = [Color(0.0, 1.8, 2.0), Color(2.0, 0.3, 1.7), Color(0.0, 1.8, 2.0)]
+var _shades: Array[Color] = [Color(0.0, 1.8, 2.0)]
 
 var _orbs: Array[Dictionary] = []
 
 
 func _ready() -> void:
 	for i in orb_count:
-		var c: Color = colors[i % colors.size()]
+		var c: Color = _shades[i % _shades.size()]
 		var trail := Line2D.new()
 		trail.width = 4.0
 		trail.modulate = c
@@ -73,3 +72,18 @@ static func _fade() -> Gradient:
 	g.set_color(0, Color(1, 1, 1, 0.9))
 	g.set_color(1, Color(1, 1, 1, 0.0))
 	return g
+
+
+func tint(col: Color) -> void:
+	_shades = [
+		col * 2.0,
+		col.darkened(0.5) * 1.6,
+		col.lightened(0.45) * 1.8,
+		col.darkened(0.25) * 1.8,
+		col.lightened(0.2) * 2.0,
+		col.darkened(0.6) * 1.4,
+	]
+	for i in _orbs.size():
+		var c: Color = _shades[i % _shades.size()]
+		_orbs[i]["orb"].color = c
+		_orbs[i]["trail"].modulate = c

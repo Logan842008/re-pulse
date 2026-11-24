@@ -1,81 +1,169 @@
 class_name Hud
 extends CanvasLayer
-# not rotated with the camera, so your bar is always the bottom one
 
 signal leave_pressed
 signal rematch_pressed
 
+const CAPS := preload("res://ui/fonts/caps_font.tres")
+
 var _game: Game
 var _msg_t := 0.0
+var _rows := []
+var _scores := []
+var _grey: ColorRect
+var _grey_amt := 0.0
+var _board: Scoreboard
+var _touch: TouchControls
 
-@onready var my_name_lbl: Label = %YouName
+@onready var mnl: Label = %YouName
 @onready var my_hp: ProgressBar = %YouHealth
-@onready var boost_lbl: Label = %BoostLabel
-@onready var opp_name_lbl: Label = %OpponentName
-@onready var opp_hp: ProgressBar = %OpponentHealth
-@onready var round_lbl: Label = %RoundLabel
-@onready var my_score: Label = %YouScore
-@onready var opp_score: Label = %OppScore
-@onready var goal_lbl: Label = %GoalLabel
-@onready var msg_lbl: Label = %MessageLabel
-@onready var rematch_btn: Button = %RematchButton
+@onready var bl: Label = %BoostLabel
+@onready var eb: VBoxContainer = $Root/Opponent
+@onready var yb: VBoxContainer = $Root/You
+@onready var rl: Label = %RoundLabel
+@onready var gl: Label = %GoalLabel
+@onready var sr: HBoxContainer = $Root/ScorePanel/Row
+@onready var ml: Label = %MessageLabel
+@onready var rb: Button = %RematchButton
 @onready var leave_btn: Button = %LeaveButton
 
 
 func _ready() -> void:
+	_grey = ColorRect.new()
+	_grey.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_grey.mouse_filter = Control.MOUSE_FILTER_IGNORE
+	_grey.material = ShaderMaterial.new()
+	_grey.material.shader = preload("res://script/grey.gdshader")
+	_grey.hide()
+	$Root.add_child(_grey)
+	$Root.move_child(_grey, 0)
 	leave_btn.pressed.connect(leave_pressed.emit)
-	rematch_btn.pressed.connect(rematch_pressed.emit)
+	rb.pressed.connect(rematch_pressed.emit)
 
 
 func setup(game: Game) -> void:
 	_game = game
 	var me := Network.my_slot()
-	var opp := 1 - me
-	my_name_lbl.text = "%s  (you)" % Network.name_of(me)
-	opp_name_lbl.text = Network.name_of(opp)
+	_board = Scoreboard.new(game, rematch_pressed.emit, leave_pressed.emit)
+	$Root.add_child(_board)
+	Controls.touch_changed.connect(_on_touch)
+	_on_touch(Controls.touch)
+	$Root/ScorePanel.hide()
+	mnl.text = "%s  (you)" % Network.name_of(me)
 	_tint_bar(my_hp, Network.color_of(me))
-	_tint_bar(opp_hp, Network.color_of(opp))
-	my_score.add_theme_color_override("font_color", Network.color_of(me))
-	opp_score.add_theme_color_override("font_color", Network.color_of(opp))
+
+	eb.hide()
+	var everyone: Array = Network.slots() if not Network.roster.is_empty() else [0, 1]
+	for s: int in everyone:
+		if s == me or Network.team_of(s) != Network.team_of(me):
+			continue
+		var name := _label(Network.name_of(s) + "  (team)", 14)
+		var bar := ProgressBar.new()
+		bar.custom_minimum_size = Vector2(200, 8)
+		bar.show_percentage = false
+		bar.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		_tint_bar(bar, Network.color_of(s))
+		yb.add_child(bar)
+		yb.add_child(name)
+		yb.move_child(bar, 0)
+		yb.move_child(name, 0)
+		_rows.append([s, name, bar])
+
+	for n in ["YouScore", "Dash", "OppScore"]:
+		sr.get_node(n).hide()
+	var sides := [Network.team_of(me)]
+	for s: int in everyone:
+		if not sides.has(Network.team_of(s)):
+			sides.append(Network.team_of(s))
+	var at := sr.get_node("Sep2").get_index()
+	for i in sides.size():
+		if i > 0:
+			var dash := Label.new()
+			dash.theme_type_variation = &"MutedLabel"
+			dash.text = "—" if sides.size() == 2 else "·"
+			sr.add_child(dash)
+			sr.move_child(dash, at)
+			at += 1
+		var l := Label.new()
+		l.theme_type_variation = &"ScoreLabel"
+		l.add_theme_color_override("font_color", Network.side_color(sides[i]))
+		sr.add_child(l)
+		sr.move_child(l, at)
+		at += 1
+		_scores.append([sides[i], l])
 
 
-# secs = 0 keeps it up until something replaces it
 func show_msg(txt: String, secs := 0.0) -> void:
-	msg_lbl.text = txt
+	ml.text = txt
 	_msg_t = secs
 
 
+func feed(by: int, victim: int) -> void:
+	_board.feed(by, victim, 0)
+
+
+func _on_touch(on: bool) -> void:
+	if on and _touch == null:
+		_touch = TouchControls.new(_game, false)
+		_touch.blockers = [leave_btn]
+		$Root.add_child(_touch)
+		$Root.move_child(_touch, _board.get_index())
+	elif not on and _touch:
+		_touch.queue_free()
+		_touch = null
+
+
 func show_rematch() -> void:
-	rematch_btn.show()
+	pass
 
 
 func hide_rematch() -> void:
-	rematch_btn.hide()
+	rb.hide()
 
 
 func _process(delta: float) -> void:
 	if _game == null:
 		return
 	var me := Network.my_slot()
-	var opp := 1 - me
 	my_hp.max_value = _game.max_hp
+	leave_btn.visible = not _game.match_over
+	if _touch:
+		_touch.visible = not _game.match_over
 	my_hp.value = _game.hp[me]
-	opp_hp.max_value = _game.max_hp
-	opp_hp.value = _game.hp[opp]
-	round_lbl.text = "ROUND %d" % _game.round_num
-	my_score.text = str(_game.scores[me])
-	opp_score.text = str(_game.scores[opp])
-	goal_lbl.text = "FIRST TO %d" % _game.wins_needed()
+	yb.modulate.a = 1.0 if _game.is_alive(me) else 0.5
+	_grey_amt = move_toward(_grey_amt, 0.0 if _game.is_alive(me) else 1.0, delta * 2.5)
+	_grey.material.set_shader_parameter("amount", _grey_amt)
+	_grey.visible = _grey_amt > 0.0
+	for r: Array in _rows:
+		r[2].max_value = _game.max_hp
+		r[2].value = _game.hp[r[0]]
+		var a := 1.0 if _game.is_alive(r[0]) else 0.3
+		r[1].modulate.a = a
+		r[2].modulate.a = a
+	for sc: Array in _scores:
+		sc[1].text = str(_game.scores[sc[0]])
+	rl.text = "ROUND %d" % _game.round_num
+	gl.text = "FIRST TO %d" % _game.wins_needed()
 
 	var boost: float = _game.boost_t[me]
-	boost_lbl.text = "WEAPON BOOST  %.1fs" % boost if boost > 0.0 else ""
+	bl.text = "WEAPON BOOST  %.1fs" % boost if boost > 0.0 else ""
 
 	if _game.countdown > 0.0:
-		msg_lbl.text = "ROUND %d\n%d" % [_game.round_num, ceili(_game.countdown)]
+		var head: String = "MATCH POINT" if _game.match_point() else "ROUND %d" % _game.round_num
+		ml.text = "%s\n%d" % [head, ceili(_game.countdown)]
 	elif _msg_t > 0.0:
 		_msg_t -= delta
 		if _msg_t <= 0.0:
-			msg_lbl.text = ""
+			ml.text = ""
+
+
+func _label(txt: String, size: int) -> Label:
+	var l := Label.new()
+	l.text = txt
+	l.uppercase = true
+	l.add_theme_font_override("font", CAPS)
+	l.add_theme_font_size_override("font_size", size)
+	return l
 
 
 func _tint_bar(bar: ProgressBar, c: Color) -> void:

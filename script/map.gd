@@ -1,9 +1,10 @@
 class_name Map
 extends Node2D
-# keep the layout symmetric when rotated 180 around the centre. both players
-# see themselves at the bottom, so otherwise they'd get different maps
 
 @export var arena_size := Vector2(1152, 648)
+var steps := "concrete"
+
+var spawn_sets := {}
 
 
 func get_center() -> Vector2:
@@ -11,8 +12,16 @@ func get_center() -> Vector2:
 
 
 func spawn_pos(slot: int) -> Vector2:
+	var pts: Array = spawn_sets.get(Network.mode, spawn_sets.get("1v1", []))
+	var i := Network.spawn_index(slot)
+	if i < pts.size():
+		return pts[i]
 	var m: Marker2D = $SpawnPoints/Bottom if slot == 0 else $SpawnPoints/Top
 	return m.global_position
+
+
+func is_top(slot: int) -> bool:
+	return spawn_pos(slot).y < get_center().y
 
 
 func pickup_spots() -> Array[Vector2]:
