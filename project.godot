@@ -11,13 +11,16 @@ config_version=5
 [application]
 
 config/name="RE:PULSE"
-run/main_scene="uid://cimyeceio57e5"
+run/main_scene="res://scene/intro.tscn"
 config/features=PackedStringArray("4.7", "Forward Plus")
 config/icon="res://icon.svg"
 
 [autoload]
 
 Network="*res://script/network.gd"
+Sfx="*res://script/sfx.gd"
+MapCache="*res://script/map_cache.gd"
+Controls="*res://script/controls.gd"
 
 [display]
 
@@ -67,4 +70,8 @@ shoot={
 
 rendering_device/driver.windows="d3d12"
 viewport/hdr_2d=true
+anti_aliasing/quality/msaa_3d=2
+scaling_3d/mode=2
+scaling_3d/fsr_sharpness=0.8
 environment/defaults/default_clear_color=Color(0.02745098, 0.02745098, 0.05882353, 1)
+scaling_3d/mode.web=0

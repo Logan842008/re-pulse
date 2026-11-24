@@ -1,0 +1,22 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://script/game_3d.gd" id="1_game"]
+[ext_resource type="Script" path="res://script/hud_3d.gd" id="3_hud"]
+
+[node name="Game3D" type="Node3D"]
+script = ExtResource("1_game")
+
+[node name="Players" type="Node3D" parent="."]
+
+[node name="Bullets" type="Node3D" parent="."]
+
+[node name="Props" type="Node3D" parent="."]
+
+[node name="PlayerSpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Players")
+
+[node name="BulletSpawner" type="MultiplayerSpawner" parent="."]
+spawn_path = NodePath("../Bullets")
+
+[node name="HUD" type="CanvasLayer" parent="."]
+script = ExtResource("3_hud")

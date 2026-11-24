@@ -95,7 +95,7 @@ theme = ExtResource("2_brvut")
 
 [node name="Layout" type="VBoxContainer" parent="Lobby/Center" unique_id=1062834341]
 layout_mode = 2
-theme_override_constants/separation = 6
+theme_override_constants/separation = 2
 
 [node name="Title" type="Label" parent="Lobby/Center/Layout" unique_id=1634979805]
 layout_mode = 2
@@ -128,7 +128,7 @@ horizontal_alignment = 1
 uppercase = true
 
 [node name="Spacer" type="Control" parent="Lobby/Center/Layout" unique_id=1284616891]
-custom_minimum_size = Vector2(0, 14)
+custom_minimum_size = Vector2(0, 2)
 layout_mode = 2
 mouse_filter = 2
 
@@ -138,7 +138,7 @@ layout_mode = 2
 
 [node name="Box" type="VBoxContainer" parent="Lobby/Center/Layout/Panel" unique_id=392232833]
 layout_mode = 2
-theme_override_constants/separation = 12
+theme_override_constants/separation = 9
 
 [node name="PlayerHeader" type="Label" parent="Lobby/Center/Layout/Panel/Box" unique_id=1445316351]
 layout_mode = 2
@@ -191,6 +191,20 @@ unique_name_in_owner = true
 layout_mode = 2
 size_flags_horizontal = 3
 
+[node name="ModeRow" type="HBoxContainer" parent="Lobby/Center/Layout/Panel/Box" unique_id=1809035051]
+unique_name_in_owner = true
+layout_mode = 2
+
+[node name="ModeLabel" type="Label" parent="Lobby/Center/Layout/Panel/Box/ModeRow" unique_id=178531207]
+layout_mode = 2
+theme_type_variation = &"MutedLabel"
+text = "Game mode (host picks)"
+
+[node name="Mode" type="OptionButton" parent="Lobby/Center/Layout/Panel/Box/ModeRow" unique_id=990863261]
+unique_name_in_owner = true
+layout_mode = 2
+size_flags_horizontal = 3
+
 [node name="ConnectBox" type="VBoxContainer" parent="Lobby/Center/Layout/Panel/Box" unique_id=602937447]
 unique_name_in_owner = true
 layout_mode = 2
@@ -212,7 +226,7 @@ text = "HOST"
 layout_mode = 2
 size_flags_vertical = 3
 theme_type_variation = &"MutedLabel"
-text = "Open a room on this PC"
+text = "Open a room and share the code"
 vertical_alignment = 1
 
 [node name="HostButton" type="Button" parent="Lobby/Center/Layout/Panel/Box/ConnectBox/Columns/HostCol" unique_id=1475611738]
@@ -233,11 +247,10 @@ layout_mode = 2
 theme_type_variation = &"HeaderLabelPink"
 text = "JOIN"
 
-[node name="Address" type="LineEdit" parent="Lobby/Center/Layout/Panel/Box/ConnectBox/Columns/JoinCol" unique_id=347140839]
+[node name="CodeEdit" type="LineEdit" parent="Lobby/Center/Layout/Panel/Box/ConnectBox/Columns/JoinCol" unique_id=347140839]
 unique_name_in_owner = true
 layout_mode = 2
-text = "127.0.0.1"
-placeholder_text = "Host's IP address"
+placeholder_text = "Room code"
 
 [node name="JoinButton" type="Button" parent="Lobby/Center/Layout/Panel/Box/ConnectBox/Columns/JoinCol" unique_id=668137926]
 unique_name_in_owner = true

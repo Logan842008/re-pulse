@@ -1,0 +1,51 @@
+[gd_scene load_steps=7 format=3]
+
+[ext_resource type="Script" path="res://script/maps/jungle.gd" id="1_map"]
+[ext_resource type="Texture2D" path="res://assets/sky/kloofendal_48d_partly_cloudy_puresky_2k.hdr" id="2_sky"]
+[ext_resource type="Shader" path="res://script/sky_grade.gdshader" id="3_grade"]
+
+[sub_resource type="ShaderMaterial" id="sky_mat"]
+shader = ExtResource("3_grade")
+shader_parameter/panorama = ExtResource("2_sky")
+shader_parameter/energy = 1.3
+shader_parameter/contrast = 0.85
+shader_parameter/pivot = 1.0
+shader_parameter/saturation = 1.0
+shader_parameter/ceiling = 1.4
+shader_parameter/light_energy = 0.8
+shader_parameter/ground = Color(0.62, 0.78, 0.6, 1)
+
+[sub_resource type="Sky" id="sky"]
+sky_material = SubResource("sky_mat")
+
+[sub_resource type="Environment" id="env"]
+background_mode = 2
+sky = SubResource("sky")
+ambient_light_source = 2
+ambient_light_color = Color(0.72, 0.8, 0.74, 1)
+ambient_light_energy = 1.3
+tonemap_mode = 2
+tonemap_exposure = 1.0
+tonemap_white = 2.0
+adjustment_enabled = true
+adjustment_contrast = 1.06
+adjustment_saturation = 1.18
+glow_enabled = true
+glow_intensity = 0.6
+glow_hdr_threshold = 2.5
+fog_enabled = true
+fog_light_color = Color(0.62, 0.74, 0.6, 1)
+fog_density = 0.014
+fog_sky_affect = 0.0
+
+[node name="Map" type="Node3D"]
+script = ExtResource("1_map")
+
+[node name="WorldEnvironment" type="WorldEnvironment" parent="."]
+environment = SubResource("env")
+
+[node name="Sun" type="DirectionalLight3D" parent="."]
+rotation_degrees = Vector3(-48, -34, 0)
+light_color = Color(1, 0.95, 0.86, 1)
+light_energy = 1.5
+shadow_enabled = true
