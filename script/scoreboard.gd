@@ -29,6 +29,7 @@ var _es := false
 var _feed: VBoxContainer
 var _nl: Label
 var _net_t := 0.0
+var _cc := Color(0, 0, 0, 0)
 
 
 func _init(g: Node, ore: Callable, ol: Callable) -> void:
@@ -78,7 +79,10 @@ func _process(delta: float) -> void:
 	_round_lbl.text = "ROUND %d" % game.round_num
 	var t: float = game.countdown if game.countdown > 0.0 else game.round_t
 	_clock.text = "%d:%02d" % [int(t) / 60, int(t) % 60]
-	_clock.add_theme_color_override("font_color", GOLD if game.countdown > 0.0 else WHITE)
+	var cc := GOLD if game.countdown > 0.0 else WHITE
+	if cc != _cc:
+		_cc = cc
+		_clock.add_theme_color_override("font_color", cc)
 	for tl: Array in _tiles:
 		var alive: bool = game.is_alive(tl[0])
 		tl[1].modulate = Color.WHITE if alive else Color(0.75, 0.75, 0.75, 0.45)
@@ -185,7 +189,8 @@ func _tile(s: int, ally: bool, ffa: bool) -> Control:
 	var v := VBoxContainer.new()
 	v.add_theme_constant_override("separation", 2)
 	v.mouse_filter = MOUSE_FILTER_IGNORE
-	var t := _portrait(s, 46, ally)
+	var mine := s == Network.my_slot()
+	var t := _portrait(s, 46, mine)
 	v.add_child(t)
 	var extra: Control = null
 	if ally:
@@ -205,7 +210,7 @@ func _tile(s: int, ally: bool, ffa: bool) -> Control:
 	return v
 
 
-func _portrait(s: int, px: int, _ally := true) -> PanelContainer:
+func _portrait(s: int, px: int, mark := false) -> PanelContainer:
 	var p := PanelContainer.new()
 	p.custom_minimum_size = Vector2(px, px)
 	var c := Network.color_of(s)
@@ -213,6 +218,9 @@ func _portrait(s: int, px: int, _ally := true) -> PanelContainer:
 	sb.set_content_margin_all(0)
 	sb.border_color = c.lightened(0.15)
 	sb.border_width_bottom = 3
+	if mark:
+		_glow(sb, c)
+		sb.bg_color = Color(c.darkened(0.3), 0.95)
 	p.add_theme_stylebox_override("panel", sb)
 	p.mouse_filter = MOUSE_FILTER_IGNORE
 	var tr := TextureRect.new()
@@ -392,8 +400,9 @@ func _tab_row(s: int, cols: Array, ally: bool) -> PanelContainer:
 	var me := s == Network.my_slot()
 	var col := Network.color_of(s)
 	var p := PanelContainer.new()
-	var sb := _box(Color(col.darkened(0.45), 0.7), WHITE if me else Color(0, 0, 0, 0))
-	sb.set_border_width_all(2 if me else 0)
+	var sb := _box(Color(col.darkened(0.25 if me else 0.45), 0.85 if me else 0.7), Color(0, 0, 0, 0))
+	if me:
+		_glow(sb, col)
 	sb.content_margin_top = 3
 	sb.content_margin_bottom = 3
 	p.add_theme_stylebox_override("panel", sb)
@@ -410,7 +419,7 @@ func _tab_row(s: int, cols: Array, ally: bool) -> PanelContainer:
 				who.custom_minimum_size = Vector2(c[1], 0)
 				who.add_theme_constant_override("separation", 8)
 				r.add_child(who)
-				who.add_child(_portrait(s, 32))
+				who.add_child(_portrait(s, 32, me))
 				var n := _label(who, 18, WHITE)
 				n.text = Network.name_of(s)
 				n.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -529,10 +538,10 @@ func _fill_end(me: int) -> void:
 		_cell(hr, c[0], c[1], 12, Color(WHITE, 0.6))
 	for s: int in rows:
 		var st: Array = game.ms.stats[s]
-		var ally := _ally(s) if not ffa else s == me
 		var p := PanelContainer.new()
-		var sb := _box(Color(Network.color_of(s).darkened(0.45), 0.82), WHITE if s == me else Color(0, 0, 0, 0))
-		sb.set_border_width_all(2 if s == me else 0)
+		var sb := _box(Color(Network.color_of(s).darkened(0.25 if s == me else 0.45), 0.82), Color(0, 0, 0, 0))
+		if s == me:
+			_glow(sb, Network.color_of(s))
 		sb.content_margin_top = 2
 		sb.content_margin_bottom = 2
 		p.add_theme_stylebox_override("panel", sb)
@@ -544,7 +553,7 @@ func _fill_end(me: int) -> void:
 		who.custom_minimum_size = Vector2(END_COLS[0][1], 0)
 		who.add_theme_constant_override("separation", 8)
 		r.add_child(who)
-		who.add_child(_portrait(s, 34, ally))
+		who.add_child(_portrait(s, 34, s == me))
 		var n := _label(who, 18, WHITE)
 		n.text = Network.name_of(s)
 		n.horizontal_alignment = HORIZONTAL_ALIGNMENT_LEFT
@@ -578,8 +587,9 @@ func _standings(order: Array, me: int) -> HBoxContainer:
 		var s: int = order[i]
 		var c := Network.color_of(s)
 		var p := PanelContainer.new()
-		var sb := _box(Color(c.darkened(0.5), 0.85), WHITE if s == me else Color(0, 0, 0, 0))
-		sb.set_border_width_all(2 if s == me else 0)
+		var sb := _box(Color(c.darkened(0.3 if s == me else 0.5), 0.85), Color(0, 0, 0, 0))
+		if s == me:
+			_glow(sb, c)
 		p.add_theme_stylebox_override("panel", sb)
 		p.custom_minimum_size = Vector2(118, 0)
 		row.add_child(p)
@@ -587,7 +597,7 @@ func _standings(order: Array, me: int) -> HBoxContainer:
 		col.add_theme_constant_override("separation", 2)
 		p.add_child(col)
 		_label(col, 14, GOLD if i == 0 else Color(WHITE, 0.75), HEAD).text = ORD[i]
-		var pic := _portrait(s, 44)
+		var pic := _portrait(s, 44, s == me)
 		pic.size_flags_horizontal = SIZE_SHRINK_CENTER
 		col.add_child(pic)
 		_label(col, 16, WHITE).text = Network.name_of(s)
@@ -613,6 +623,7 @@ func _button(txt: String, kind: StringName, cb: Callable) -> Button:
 	b.focus_mode = FOCUS_NONE
 	b.custom_minimum_size = Vector2(170, 44)
 	b.pressed.connect(cb)
+	paint(b, Network.color_of(Network.my_slot()), kind == &"PrimaryButton")
 	return b
 
 
@@ -636,6 +647,34 @@ func _cell(p: Control, txt: String, w: int, size: int, col: Color) -> Label:
 	l.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
 	l.size_flags_vertical = SIZE_EXPAND_FILL
 	return l
+
+
+# buttons in your color during a match
+static func paint(b: Button, col: Color, solid := false) -> void:
+	var kind := &"PrimaryButton" if solid else &"PinkButton"
+	var glow := Color(col.r * 1.6, col.g * 1.6, col.b * 1.6)
+	for st: String in ["normal", "hover", "pressed", "hover_pressed"]:
+		var sb := THEME.get_stylebox(st, kind).duplicate() as StyleBoxFlat
+		if solid:
+			sb.border_color = col
+			sb.bg_color = col.darkened(0.35) if st.ends_with("pressed") else glow if st == "hover" else col
+		else:
+			sb.border_color = Color(col, 0.6) if st == "normal" else glow if st == "hover" else col
+			if st != "normal":
+				sb.bg_color = Color(col, 0.14 if st == "hover" else 0.28)
+		b.add_theme_stylebox_override(st, sb)
+	if not solid:
+		b.add_theme_color_override("font_color", col)
+		b.add_theme_color_override("font_focus_color", col)
+
+
+# your box glows a bit
+static func _glow(sb: StyleBoxFlat, c: Color) -> void:
+	sb.shadow_color = Color(c.lightened(0.25), 0.5)
+	sb.shadow_size = 6
+	sb.border_color = Color(c.lightened(0.45), 0.9)
+	sb.set_border_width_all(1)
+	sb.border_width_bottom = 3
 
 
 func _box(bg: Color, border: Color) -> StyleBoxFlat:

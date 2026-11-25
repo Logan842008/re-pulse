@@ -22,6 +22,7 @@ var _aim_v := Vector2.ZERO
 var _look := {}
 var _pts := {}
 var _next := 0
+var _sp := false
 
 
 func _init(g: Node, is_3d: bool, om := Callable()) -> void:
@@ -39,7 +40,17 @@ func _ready() -> void:
 			_release_all())
 
 
-static func layout(is_3d: bool) -> Array:
+static func layout(is_3d: bool, spec := false) -> Array:
+	if spec:
+		return [
+			["next", "fire", Vector2(-150, -215), 50.0, "NEXT", false],
+			["prev", "scope", Vector2(-285, -170), 38.0, "PREV", false],
+			["ghost", "ghost", Vector2(-280, -295), 38.0, "GHOST", false],
+			["up", "jump", Vector2(-60, -350), 34.0, "UP", false],
+			["down", "crouch", Vector2(-60, -260), 34.0, "DOWN", false],
+			["menu", "", Vector2(46, 46), 26.0, "MENU", false],
+			["tab", "scoreboard", Vector2(112, 46), 26.0, "SCORES", false],
+		]
 	if not is_3d:
 		return [["tab", "scoreboard", Vector2(46, 120), 26.0, "SCORES", false]]
 	return [
@@ -160,9 +171,13 @@ func _drag(i: int, p: Vector2, rel: Vector2) -> void:
 		else:
 			Input.action_release("shoot")
 	elif three and (_look.has(i) or _held.get(i, "") == "fire"):
-		var me = game.me()
-		if me:
-			me.look(rel * LOOK)
+		var sp = game.get("spec")
+		if sp and sp.on:
+			sp.look(rel * LOOK * Controls.tsens)
+		else:
+			var me = game.me()
+			if me:
+				me.look(rel * LOOK * Controls.tsens)
 
 
 static func _follow(c: Vector2, p: Vector2) -> Vector2:
@@ -198,7 +213,7 @@ func _set_move(v: Vector2) -> void:
 
 
 func _release_all() -> void:
-	for a in MOVES + ["shoot", "fire", "scope", "jump", "crouch", "scoreboard"]:
+	for a in MOVES + ["shoot", "fire", "scope", "jump", "crouch", "scoreboard", "ghost"]:
 		Input.action_release(a)
 	_held.clear()
 	_pts.clear()
@@ -212,6 +227,11 @@ func _release_all() -> void:
 
 
 func _process(_delta: float) -> void:
+	var sp: bool = three and game.get("spec") != null and game.spec.on
+	if sp != _sp:
+		_sp = sp
+		_release_all()
+		_btns = layout(three, sp)
 	queue_redraw()
 
 

@@ -29,6 +29,7 @@ func _ready() -> void:
 	mat.distance_fade_max_distance = 2.2
 
 	_parts = GPUParticles3D.new()
+	_parts.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	if snow:
 		pm.spread = 20.0
 		pm.initial_velocity_min = 0.6

@@ -49,6 +49,15 @@ var _gun_t := 0.0
 var _phase: Timer
 var _phase_cb: Callable
 
+var spec: Spectator
+var _dead_t := 0.0
+var _aa := Viewport.MSAA_2X
+var _hdr := true
+var _slow := 0.0
+var _ok := 0.0
+var _up := 5.0
+var _wt := 2.0
+var _warmed := false
 var arena: ArenaMap
 @onready var players: Node3D = $Players
 @onready var bullets: Node3D = $Bullets
@@ -69,6 +78,13 @@ func _ready() -> void:
 	ghosts = Node3D.new()
 	ghosts.name = "Ghosts"
 	add_child(ghosts)
+	spec = Spectator.new(self)
+	add_child(spec)
+	var vp := get_viewport()
+	_aa = vp.msaa_3d
+	_hdr = vp.use_hdr_2d
+	# hdr is only for the 2d maps glow
+	vp.use_hdr_2d = false
 	hud.setup(self)
 	Sfx.music("3d")
 	hud.leave_pressed.connect(exit_requested.emit)
@@ -100,6 +116,73 @@ func _process(delta: float) -> void:
 			_fight()
 	if fighting:
 		round_t = maxf((now - _fight_t0) / 1000.0, 0.0)
+	_watch(delta)
+	_res(delta)
+	if not _warmed and me() and is_instance_valid(me().cam):
+		_warmed = true
+		_warm(me().cam)
+
+
+# web hitches the first time it draws something new, so get it out of the way in the countdown
+func _warm(cam: Camera3D) -> void:
+	var w := Node3D.new()
+	w.position = Vector3(0, 0, -1.2)
+	w.scale = Vector3.ONE * 0.01
+	cam.add_child(w)
+	for i in Weapons.LIST.size():
+		w.add_child(Weapons.build_model(i, Color.WHITE))
+	for k in [Pickup3D.HEALTH, 1]:
+		var p := Pickup3D.new()
+		p.kind = k
+		w.add_child(p)
+	var b := Bullet3D.new()
+	b.dir = Vector3.ZERO
+	b.ghost = true
+	b.quiet = true
+	b.color = Network.color_of(Network.my_slot())
+	b.game = self
+	w.add_child(b)
+	hud.warm()
+	get_tree().create_timer(0.4).timeout.connect(w.queue_free)
+
+
+# slow pc: msaa off, try it again later and wait longer each time it fails
+# (lowering the 3d res made web slower, not faster)
+func _res(delta: float) -> void:
+	_wt -= delta
+	if delta > 0.25 or _wt > 0.0:
+		return
+	if delta > 1.0 / 52.0:
+		_slow += delta
+		_ok = 0.0
+	else:
+		_slow = maxf(_slow - delta * 0.5, 0.0)
+		_ok += delta
+	var vp := get_viewport()
+	if _slow > 0.6 and vp.msaa_3d != Viewport.MSAA_DISABLED:
+		vp.msaa_3d = Viewport.MSAA_DISABLED
+		_slow = 0.0
+		_up = minf(_up * 1.5, 60.0)
+	elif _ok > _up and vp.msaa_3d != _aa:
+		vp.msaa_3d = _aa
+		_ok = 0.0
+
+
+func _exit_tree() -> void:
+	var vp := get_viewport()
+	vp.msaa_3d = _aa
+	vp.use_hdr_2d = _hdr
+
+
+func _watch(delta: float) -> void:
+	var mine := Network.my_slot()
+	if mine < 0 or is_alive(mine) or match_over:
+		_dead_t = 0.0
+		spec.stop()
+	elif not spec.on:
+		_dead_t += delta
+		if _dead_t > 2.5 and fighting and not spec.alive().is_empty():
+			spec.start()
 
 
 func _physics_process(delta: float) -> void:
