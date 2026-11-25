@@ -142,7 +142,7 @@ func _unhandled_input(e: InputEvent) -> void:
 	if not is_multiplayer_authority():
 		return
 	if e is InputEventMouseMotion and Input.mouse_mode == Input.MOUSE_MODE_CAPTURED:
-		look(e.relative)
+		look(e.relative * Controls.sens)
 
 
 func look(rel: Vector2) -> void:

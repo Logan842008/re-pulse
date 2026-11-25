@@ -14,6 +14,7 @@ var game: Game3D
 var ghost := false
 var claimed := false
 var shadow := false
+var quiet := false
 var _age := 0.0
 
 var bounces := 0
@@ -26,10 +27,14 @@ var _orb: MeshInstance3D
 var _hitbox: Area3D
 var _spark: CPUParticles3D
 
+# shared, no point rebuilding these every shot
+static var _orbs := {}
+static var _dots := {}
+
 
 func _ready() -> void:
 	var g: Dictionary = Weapons.LIST[weapon]
-	if not shadow:
+	if not shadow and not quiet:
 		Sfx.at3d("shot_%d" % weapon, position, -4.0)
 	dmg = g["dmg"]
 	_mb = g["bounces"]
@@ -49,10 +54,14 @@ func _ready() -> void:
 	_mat.emission_enabled = true
 	_mat.emission = color
 	_orb = MeshInstance3D.new()
-	var sm := SphereMesh.new()
-	sm.radius = r
-	sm.height = r * 2.0
-	_orb.mesh = sm
+	if not _orbs.has(r):
+		var sm := SphereMesh.new()
+		sm.radius = r
+		sm.height = r * 2.0
+		sm.radial_segments = 24
+		sm.rings = 12
+		_orbs[r] = sm
+	_orb.mesh = _orbs[r]
 	_orb.material_override = _mat
 	_orb.cast_shadow = GeometryInstance3D.SHADOW_CASTING_SETTING_OFF
 	add_child(_orb)
@@ -154,6 +163,9 @@ func _trail(r: float) -> CPUParticles3D:
 
 
 func _dot(r: float) -> SphereMesh:
+	var key := "%s %s" % [r, color.to_html()]
+	if _dots.has(key):
+		return _dots[key]
 	var m := SphereMesh.new()
 	m.radius = r
 	m.height = r * 2.0
@@ -165,6 +177,7 @@ func _dot(r: float) -> SphereMesh:
 	mat.emission = color
 	mat.emission_energy_multiplier = 4.0
 	m.material = mat
+	_dots[key] = m
 	return m
 
 

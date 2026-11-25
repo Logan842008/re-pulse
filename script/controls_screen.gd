@@ -7,21 +7,23 @@ const THEME := preload("res://lobby_theme.tres")
 const CAPS := preload("res://ui/fonts/caps_font.tres")
 
 const PC3 := [
-	[["W", "A", "S", "D"], "Move"],
+	[["@move_up", "@move_left", "@move_down", "@move_right"], "Move"],
 	[["MOUSE"], "Look around"],
-	[["LEFT CLICK"], "Shoot"],
-	[["RIGHT CLICK"], "Scope in (sniper)"],
-	[["SPACE"], "Jump"],
-	[["CTRL", "/", "C"], "Crouch, slide if you're running"],
-	[["SHIFT"], "Walk, quiet and accurate"],
-	[["TAB"], "Scoreboard"],
+	[["@fire"], "Shoot"],
+	[["@scope"], "Scope in (sniper)"],
+	[["@jump"], "Jump"],
+	[["@crouch"], "Crouch, slide if you're running"],
+	[["@walk"], "Walk, quiet and accurate"],
+	[["@scoreboard"], "Scoreboard"],
 	[["ESC"], "Pause"],
+	[["@fire", "/", "@scope"], "Next / previous player when spectating"],
+	[["@ghost"], "Ghost cam when spectating"],
 ]
 const PC2 := [
-	[["W", "A", "S", "D"], "Move"],
+	[["@move_up", "@move_left", "@move_down", "@move_right"], "Move"],
 	[["MOUSE"], "Aim"],
-	[["SPACE"], "Shoot"],
-	[["TAB"], "Scoreboard"],
+	[["@shoot"], "Shoot"],
+	[["@scoreboard"], "Scoreboard"],
 ]
 const MOB3 := [
 	[["LEFT SIDE"], "Drag to move"],
@@ -32,6 +34,8 @@ const MOB3 := [
 	[["SLIDE"], "Crouch, slide if you're running"],
 	[["SCORES"], "Scoreboard"],
 	[["MENU"], "Pause"],
+	[["PREV", "/", "NEXT"], "Switch player when spectating"],
+	[["GHOST"], "Fly around when spectating"],
 ]
 const MOB2 := [
 	[["LEFT STICK"], "Move"],
@@ -46,6 +50,7 @@ var _acc := Color.WHITE
 var _box: PanelContainer
 var _body: HBoxContainer
 var _sub: Label
+var tint := Color(0, 0, 0, 0)
 
 
 func _init(is_3d := true, phone := false) -> void:
@@ -97,6 +102,8 @@ func _ready() -> void:
 	back.custom_minimum_size = Vector2(180, 42)
 	back.size_flags_horizontal = SIZE_SHRINK_CENTER
 	back.pressed.connect(close)
+	if tint.a > 0.0:
+		Scoreboard.paint(back, tint)
 	v.add_child(back)
 	Controls.touch_changed.connect(_on_touch)
 	_fill()
@@ -130,13 +137,15 @@ func _fill() -> void:
 		keys.alignment = BoxContainer.ALIGNMENT_END
 		keys.add_theme_constant_override("separation", 5)
 		for k: String in r[0]:
-			if k == "/":
-				var sl := Label.new()
-				sl.theme_type_variation = &"MutedLabel"
-				sl.text = "/"
-				keys.add_child(sl)
-			else:
-				keys.add_child(_cap(k))
+			var caps: Array = Controls.key_names(k.substr(1)) if k.begins_with("@") else [k]
+			for i in caps.size():
+				if caps[i] == "/" or i > 0:
+					var sl := Label.new()
+					sl.theme_type_variation = &"MutedLabel"
+					sl.text = "/"
+					keys.add_child(sl)
+				if caps[i] != "/":
+					keys.add_child(_cap(caps[i]))
 		g.add_child(keys)
 		var d := Label.new()
 		d.text = r[1]

@@ -49,3 +49,6 @@ rotation_degrees = Vector3(-48, -34, 0)
 light_color = Color(1, 0.95, 0.86, 1)
 light_energy = 1.5
 shadow_enabled = true
+directional_shadow_mode = 1
+directional_shadow_split_1 = 0.2
+directional_shadow_max_distance = 60.0

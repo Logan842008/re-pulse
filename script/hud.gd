@@ -37,6 +37,7 @@ func _ready() -> void:
 	_grey.hide()
 	$Root.add_child(_grey)
 	$Root.move_child(_grey, 0)
+	ml.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	leave_btn.pressed.connect(leave_pressed.emit)
 	rb.pressed.connect(rematch_pressed.emit)
 
@@ -48,6 +49,8 @@ func setup(game: Game) -> void:
 	$Root.add_child(_board)
 	Controls.touch_changed.connect(_on_touch)
 	_on_touch(Controls.touch)
+	Scoreboard.paint(leave_btn, Network.color_of(me))
+	Scoreboard.paint(rb, Network.color_of(me), true)
 	$Root/ScorePanel.hide()
 	mnl.text = "%s  (you)" % Network.name_of(me)
 	_tint_bar(my_hp, Network.color_of(me))

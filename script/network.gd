@@ -242,7 +242,8 @@ func spawn_index(slot: int) -> int:
 func side_name(side: int) -> String:
 	if mode != "2v2":
 		return name_of(side)
-	return " & ".join(team_slots(side).map(name_of))
+	var t := team_slots(side)
+	return "Team " + (COLOR_NAMES[roster[t[0]]["color"] % COLOR_NAMES.size()] if not t.is_empty() else str(side + 1))
 
 
 func round_text(winner: int, over: bool) -> String:
@@ -254,10 +255,10 @@ func round_text(winner: int, over: bool) -> String:
 			return "ROUND WON"
 		if mode == "1v1":
 			return "ROUND LOST"
-		return "%s %s THE ROUND" % [who, "TAKE" if many else "TAKES"]
+		return "%s TAKES THE ROUND" % who
 	if mine:
 		return "YOUR TEAM WINS THE MATCH!" if many else "YOU WIN THE MATCH!"
-	return "%s %s THE MATCH" % [who, "WIN" if many else "WINS"]
+	return "%s WINS THE MATCH" % who
 
 
 func out_text(slot: int) -> String:
@@ -268,18 +269,6 @@ func out_text(slot: int) -> String:
 
 func char_of(slot: int) -> int:
 	var ci: int = roster[slot]["color"] if roster.has(slot) else slot
-	if mode != "2v2" or not roster.has(slot):
-		return ci % PALETTE.size()
-	var used := []
-	for t in 2:
-		var mems := team_slots(t)
-		for i in mems.size():
-			var c: int = roster[mems[i]]["color"] + i * 3
-			while used.has(c % PALETTE.size()):
-				c += 1
-			used.append(c % PALETTE.size())
-			if mems[i] == slot:
-				return c % PALETTE.size()
 	return ci % PALETTE.size()
 
 

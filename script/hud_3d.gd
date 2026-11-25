@@ -40,6 +40,12 @@ var _lines: Array[ColorRect] = []
 var _cross: Control
 var _scope: Control
 var _recap: PanelContainer
+var _spec_lbl: Label
+var _spec_hint: Label
+var _col := Color(0, 0, 0, 0)
+var _rn := -1
+var _gw := 0
+var _rt := false
 
 
 func _ready() -> void:
@@ -88,6 +94,9 @@ func _ready() -> void:
 	_list.alignment = BoxContainer.ALIGNMENT_END
 	_round_lbl = _label(root, 18, Control.PRESET_CENTER_TOP, Vector2(0, 64))
 	_round_lbl.modulate = Color(WHITE, 0.7)
+	_spec_lbl = _label(root, 26, Control.PRESET_CENTER_TOP, Vector2(0, 100))
+	_spec_hint = _label(root, 16, Control.PRESET_CENTER_BOTTOM, Vector2(0, -50))
+	_spec_hint.modulate = Color(WHITE, 0.75)
 
 	var hp_box := _panel(root, Control.PRESET_BOTTOM_LEFT, Vector2(24, -24), Vector2(260, 84))
 	_hp_lbl = _label(hp_box, 44, -1, Vector2.ZERO)
@@ -117,6 +126,7 @@ func _ready() -> void:
 	_ml.theme_type_variation = &"BigMessageLabel"
 	_ml.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_ml.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+	_ml.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_ml.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_ml.add_theme_constant_override("shadow_outline_size", 22)
 	_ml.add_theme_constant_override("shadow_offset_x", 0)
@@ -138,6 +148,7 @@ func _ready() -> void:
 	_hint.text = "Click the game to keep playing"
 	_button(_pause, "RESUME", &"PrimaryButton", Vector2(180, 42), capture)
 	_button(_pause, "CONTROLS", &"PinkButton", Vector2(180, 42), _keys)
+	_button(_pause, "SETTINGS", &"PinkButton", Vector2(180, 42), _opts)
 	_rb = _button(_pause, "REMATCH", &"PrimaryButton", Vector2(180, 42), rematch_pressed.emit)
 	_button(_pause, "LEAVE", &"PinkButton", Vector2(100, 44), leave_pressed.emit)
 	_pause.hide()
@@ -191,6 +202,11 @@ func setup(game: Game3D) -> void:
 		_rows.append([s, row, bar])
 
 
+# so the grey shader is compiled before the first death
+func warm() -> void:
+	_gw = 3
+
+
 func capture() -> void:
 	if Controls.touch:
 		Controls.paused = false
@@ -199,7 +215,15 @@ func capture() -> void:
 
 
 func _keys() -> void:
-	get_child(0).add_child(ControlsScreen.new(true, Controls.touch))
+	var cs := ControlsScreen.new(true, Controls.touch)
+	cs.tint = Network.color_of(Network.my_slot())
+	get_child(0).add_child(cs)
+
+
+func _opts() -> void:
+	var ss := SettingsScreen.new()
+	ss.tint = Network.color_of(Network.my_slot())
+	get_child(0).add_child(ss)
 
 
 func release() -> void:
@@ -264,10 +288,18 @@ func _process(delta: float) -> void:
 		_touch.visible = Controls.live() and not _game.match_over
 
 	var me := Network.my_slot()
-	var hp: int = _game.hp[me]
-	_grey_amt = move_toward(_grey_amt, 0.0 if _game.is_alive(me) else 1.0, delta * 2.5)
+	var sp := _game.spec
+	var who := sp.target if sp.on and not sp.ghost and sp.target >= 0 else me
+	var hp: int = _game.hp[who]
+	_grey_amt = move_toward(_grey_amt, 0.0 if _game.is_alive(me) or sp.on else 1.0, delta * 2.5)
+	_spec_lbl.visible = sp.on
+	_spec_hint.visible = sp.on and not Controls.touch
+	if sp.on:
+		_spec_lbl.text = "GHOST CAM" if sp.ghost else "SPECTATING  " + sp.target_name().to_upper()
+		_spec_hint.text = _spec_keys(sp.ghost)
 	_grey.material.set_shader_parameter("amount", _grey_amt)
-	_grey.visible = _grey_amt > 0.0
+	_grey.visible = _grey_amt > 0.0 or _gw > 0
+	_gw -= 1
 	_hp_lbl.text = str(hp)
 	_hp_lbl.modulate = ACCENT if hp <= _game.max_hp * 0.3 else WHITE
 	_hp_bar.max_value = _game.max_hp
@@ -278,16 +310,21 @@ func _process(delta: float) -> void:
 		r[2].max_value = _game.max_hp
 		r[2].value = _game.hp[r[0]]
 		r[1].modulate.a = 1.0 if _game.is_alive(r[0]) else 0.35
-	var col := Network.color_of(me)
-	_fill.bg_color = col
-	for sb in _bord:
-		sb.border_color = col
-	_gl.add_theme_color_override("font_color", col)
-	_ml.add_theme_color_override("font_shadow_color", Color(col, 0.55))
-	_round_lbl.text = "ROUND %d   ·   FIRST TO %d   ·   %s" % [_game.round_num, _game.wins_needed(), _versus(me)]
+	var col := Network.color_of(who)
+	# overrides relayout the labels, only do it on change
+	if col != _col:
+		_col = col
+		_fill.bg_color = col
+		for sb in _bord:
+			sb.border_color = col
+		_gl.add_theme_color_override("font_color", col)
+		_ml.add_theme_color_override("font_shadow_color", Color(col, 0.55))
+	if _game.round_num != _rn:
+		_rn = _game.round_num
+		_round_lbl.text = "ROUND %d   ·   FIRST TO %d   ·   %s" % [_rn, _game.wins_needed(), _versus(me)]
 
-	var w: int = _game.gun[me]
-	var left: int = _game.ammo[me]
+	var w: int = _game.gun[who]
+	var left: int = _game.ammo[who]
 	_gl.text = Weapons.LIST[w]["name"]
 	_al.text = "∞" if left < 0 else str(left)
 	_al.modulate = ACCENT if left >= 0 and left <= 3 else WHITE
@@ -303,10 +340,20 @@ func _process(delta: float) -> void:
 	_aim_view()
 	if _game.is_alive(me) or _game.match_over:
 		_recap.hide()
+	if Controls.touch != _rt:
+		_place_recap(Controls.touch)
+	_recap.pivot_offset = Vector2.ZERO if _rt else _recap.size
 	_hit_t = maxf(_hit_t - delta, 0.0)
 	_hit.visible = _hit_t > 0.0
 	_hurt_t = maxf(_hurt_t - delta, 0.0)
 	_hurt.color.a = _hurt_t * 0.6
+
+
+func _spec_keys(g: bool) -> String:
+	var k := func(a: String) -> String: return Controls.key_names(a)[0]
+	if g:
+		return "%s %s %s %s fly   ·   %s up   ·   %s down   ·   %s back to players" % [k.call("move_up"), k.call("move_left"), k.call("move_down"), k.call("move_right"), k.call("jump"), k.call("crouch"), k.call("fire")]
+	return "%s next   ·   %s previous   ·   %s ghost cam" % [k.call("fire"), k.call("scope"), k.call("ghost")]
 
 
 func _versus(me: int) -> String:
@@ -393,6 +440,7 @@ func _button(p: Control, txt: String, kind: StringName, sz: Vector2, cb: Callabl
 	b.custom_minimum_size = sz
 	b.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
 	b.pressed.connect(cb)
+	Scoreboard.paint(b, Network.color_of(Network.my_slot()), kind == &"PrimaryButton")
 	p.add_child(b)
 	return b
 
@@ -411,13 +459,24 @@ func _build_combat() -> void:
 	_recap.mouse_filter = Control.MOUSE_FILTER_IGNORE
 	_recap.hide()
 	root.add_child(_recap)
-	_recap.anchor_left = 0.5
-	_recap.anchor_right = 0.5
-	_recap.anchor_top = 1.0
-	_recap.anchor_bottom = 1.0
-	_recap.grow_horizontal = Control.GROW_DIRECTION_BOTH
-	_recap.grow_vertical = Control.GROW_DIRECTION_BEGIN
-	_recap.offset_bottom = -130
+	_recap.scale = Vector2.ONE * 0.85
+	_place_recap(Controls.touch)
+
+
+# out of the middle. touch has buttons on the right so top left there
+func _place_recap(tc: bool) -> void:
+	_rt = tc
+	var a := 0.0 if tc else 1.0
+	_recap.anchor_left = a
+	_recap.anchor_right = a
+	_recap.anchor_top = a
+	_recap.anchor_bottom = a
+	_recap.grow_horizontal = Control.GROW_DIRECTION_END if tc else Control.GROW_DIRECTION_BEGIN
+	_recap.grow_vertical = Control.GROW_DIRECTION_END if tc else Control.GROW_DIRECTION_BEGIN
+	_recap.offset_left = 24.0 if tc else 0.0
+	_recap.offset_top = 92.0 if tc else 0.0
+	_recap.offset_right = 0.0 if tc else -24.0
+	_recap.offset_bottom = 0.0 if tc else -124.0
 
 
 func _aim_view() -> void:

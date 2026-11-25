@@ -85,6 +85,9 @@ func _ready() -> void:
 	ne.text_changed.connect(_on_name_changed)
 	ce.max_length = Network.CODE_LEN
 	ce.text_submitted.connect(_on_join.unbind(1))
+	if OS.has_feature("web_ios") or OS.has_feature("web_macos"):
+		ne.focus_entered.connect(func(): _ask.call_deferred(ne, "Your name"))
+		ce.focus_entered.connect(func(): _ask.call_deferred(ce, "Room code"))
 	_build_swatches()
 	get_viewport().size_changed.connect(_fit_layout)
 	var btns := HBoxContainer.new()
@@ -120,6 +123,22 @@ func _ready() -> void:
 	var ft := fade.create_tween()
 	ft.tween_property(fade, "color:a", 0.0, 0.5)
 	ft.tween_callback(fade.queue_free)
+
+
+# ios safari won't open the keyboard, use the browser prompt
+func _ask(le: LineEdit, title: String) -> void:
+	# a real mac with a keyboard types fine
+	if not OS.has_feature("web_ios") and not Controls.touch:
+		return
+	le.release_focus()
+	var r = JavaScriptBridge.eval("window.prompt(%s, %s)" % [JSON.stringify(title), JSON.stringify(le.text)])
+	if r == null:
+		return
+	var s := str(r).strip_edges().left(le.max_length)
+	if le == ce:
+		s = s.to_upper()
+	le.text = s
+	le.text_changed.emit(s)
 
 
 func _on_name_changed(nn: String) -> void:
@@ -328,6 +347,13 @@ func _build_mode_select() -> void:
 		hint.theme_type_variation = &"MutedLabel"
 		hint.text = "First person, pulses bounce off walls and floor. 3 maps." if is_3d else "Top-down, the original. 3 maps."
 		box.add_child(hint)
+	var ob := Button.new()
+	ob.text = "SETTINGS"
+	ob.theme_type_variation = &"PinkButton"
+	ob.custom_minimum_size = Vector2(200, 40)
+	ob.size_flags_horizontal = Control.SIZE_SHRINK_CENTER
+	ob.pressed.connect(_open_settings)
+	box.add_child(ob)
 
 	var lb: VBoxContainer = $Lobby/Center/Layout/Panel/Box
 	var header: Label = $Lobby/Center/Layout/Panel/Box/PlayerHeader
@@ -350,6 +376,12 @@ func _build_mode_select() -> void:
 	kb.custom_minimum_size = Vector2(120, 30)
 	kb.pressed.connect(_open_controls)
 	row.add_child(kb)
+	var ob2 := Button.new()
+	ob2.text = "SETTINGS"
+	ob2.theme_type_variation = &"PinkButton"
+	ob2.custom_minimum_size = Vector2(120, 30)
+	ob2.pressed.connect(_open_settings)
+	row.add_child(ob2)
 	_bb.pressed.connect(_show_mode_select)
 	row.add_child(_bb)
 	_show_mode_select()
@@ -357,6 +389,10 @@ func _build_mode_select() -> void:
 
 func _open_controls() -> void:
 	lobby.add_child(ControlsScreen.new(Network.is_3d, Controls.touch))
+
+
+func _open_settings() -> void:
+	lobby.add_child(SettingsScreen.new())
 
 
 func _show_mode_select() -> void:

@@ -5,6 +5,7 @@ extends Node3D
 const SIDES := ["n", "e", "s", "w"]
 const MODELS := "res://assets/models/%s.glb"
 const SIDE_COL := [Color("5fb3b3"), Color("c8664e"), Color("ebe5da"), Color("d9b45a")]
+const CELL := 32.0
 
 @export var show_markers := true
 
@@ -119,8 +120,57 @@ func build() -> void:
 		gen.add_child(top)
 		_guns.append(top)
 	_decorate(gen)
+	if not Engine.is_editor_hint():
+		_batch(gen)
 	if weather != "" and not Engine.is_editor_hint():
 		gen.add_child(Weather.new(weather == "snow"))
+
+
+# same mesh over and over = a draw call each (and again for shadows), so merge nearby copies
+func _batch(gen: Node3D) -> void:
+	var inv := gen.global_transform.affine_inverse()
+	var groups := {}
+	for mi: MeshInstance3D in gen.find_children("*", "MeshInstance3D", true, false):
+		if mi.mesh == null or mi.mesh is PrimitiveMesh or not mi.is_visible_in_tree():
+			continue
+		var xf := inv * mi.global_transform
+		var key := "%d %d %d %d %d" % [mi.mesh.get_instance_id(), _oid(mi.material_override), mi.cast_shadow, floori(xf.origin.x / CELL), floori(xf.origin.z / CELL)]
+		for i in mi.get_surface_override_material_count():
+			key += " %d" % _oid(mi.get_surface_override_material(i))
+		if not groups.has(key):
+			groups[key] = []
+		groups[key].append(mi)
+	for l: Array in groups.values():
+		if l.size() < 2:
+			continue
+		var m0: MeshInstance3D = l[0]
+		var mesh: Mesh = m0.mesh
+		var over := false
+		for i in m0.get_surface_override_material_count():
+			over = over or m0.get_surface_override_material(i) != null
+		if over:
+			mesh = mesh.duplicate()
+			for i in m0.get_surface_override_material_count():
+				if m0.get_surface_override_material(i):
+					mesh.surface_set_material(i, m0.get_surface_override_material(i))
+		var mm := MultiMesh.new()
+		mm.transform_format = MultiMesh.TRANSFORM_3D
+		mm.mesh = mesh
+		mm.instance_count = l.size()
+		for i in l.size():
+			mm.set_instance_transform(i, inv * (l[i] as MeshInstance3D).global_transform)
+		var mmi := MultiMeshInstance3D.new()
+		mmi.multimesh = mm
+		mmi.material_override = m0.material_override
+		mmi.cast_shadow = m0.cast_shadow
+		gen.add_child(mmi)
+		# keep the nodes, colliders hang off some of them
+		for mi: MeshInstance3D in l:
+			mi.mesh = null
+
+
+static func _oid(o: Object) -> int:
+	return o.get_instance_id() if o else 0
 
 
 func _layout() -> void:
